@@ -157,8 +157,8 @@ class FlutterTencentLBSPlugin : FlutterPlugin, MethodCallHandler, TencentLocatio
             if (backgroundLocation) {
                 val options = NotificationOptions.getData(getMap(args, "androidNotificationOptions"))
                 locationManager.enableForegroundLocation(options.id, buildNotification(options))
-                locationManager.requestLocationUpdates(tencentLocationRequest, this)
             }
+            locationManager.requestLocationUpdates(tencentLocationRequest, this)
         }
     }
 
