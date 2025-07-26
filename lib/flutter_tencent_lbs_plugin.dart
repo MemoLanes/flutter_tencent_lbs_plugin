@@ -17,7 +17,7 @@ class FlutterTencentLBSPlugin {
     required String key,
 
     /// 经纬度坐标类型
-    int coordinateType = TencentLBSLocationCoordinateType.GCJ02,
+    int coordinateType = TencentLBSLocationCoordinateType.WGS84,
 
     /// 设置是否允许MockGPS
     bool mockEnable = false,
@@ -33,7 +33,7 @@ class FlutterTencentLBSPlugin {
     /// Android Only
     /// 是否允许使用GPS
     /// 建议用户开启，在室外场景可以显著提升定位精度。
-    bool isAllowGPS = true,
+    bool isAllowGPS = false,
 
     /// Android Only
     /// 是否需要开启室内定位
@@ -44,7 +44,7 @@ class FlutterTencentLBSPlugin {
     /// 设置GPS优先
     /// 设置Gps优先，一旦设置为true，首次定位将等待卫星定位结果，超时时间默认为5s，超时时间后仍无卫星定位结果将返回网络定位结果。
     /// 注：只有高精度定位模式下可以使用此设置
-    bool isGpsFirst = false,
+    bool isGpsFirst = true,
 
     /// Android Only
     /// 定义GPS超时时间，超过该时间仍然没有卫星定位结果将返回网络定位结果
@@ -73,7 +73,7 @@ class FlutterTencentLBSPlugin {
   }
 
   /// 连续定位
-  void getLocation({
+  Future<void> getLocation({
     required int interval,
     AndroidNotificationOptions? androidNotificationOptions,
     bool backgroundLocation = false,
