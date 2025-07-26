@@ -73,12 +73,12 @@ class FlutterTencentLBSPlugin {
   }
 
   /// 连续定位
-  Future<Location?> getLocation({
+  void getLocation({
     required int interval,
     AndroidNotificationOptions? androidNotificationOptions,
     bool backgroundLocation = false,
   }) async {
-    return await FlutterTencentLBSPluginPlatform.instance.getLocation(
+    return FlutterTencentLBSPluginPlatform.instance.getLocation(
       interval: interval,
       androidNotificationOptions: androidNotificationOptions,
       backgroundLocation: backgroundLocation,

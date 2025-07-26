@@ -55,8 +55,9 @@ class FlutterTencentLBSPlugin : FlutterPlugin, MethodCallHandler, TencentLocatio
             }
 
             "getLocation" -> {
-                this.resultList.add(result)
+//                this.resultList.add(result)
                 getLocation(call)
+                result.success(null)
             }
 
             "stopLocation" -> {
@@ -72,16 +73,33 @@ class FlutterTencentLBSPlugin : FlutterPlugin, MethodCallHandler, TencentLocatio
     }
 
     override fun onLocationChanged(location: TencentLocation?, error: Int, reason: String?) {
-        if (error == TencentLocation.ERROR_OK) {
+        if (error == TencentLocation.ERROR_OK && location != null) {
             val result = HashMap<String, Any?>()
-            result["name"] = location?.name
-            result["latitude"] = location?.latitude
-            result["longitude"] = location?.longitude
-            result["address"] = location?.address
-            result["city"] = location?.city
-            result["province"] = location?.province
-            result["area"] = location?.district
-            result["cityCode"] = location?.cityCode
+
+            // 提取所有能访问到的字段
+            result["name"] = location.name
+            result["address"] = location.address
+            result["provider"] = location.provider
+            result["latitude"] = location.latitude
+            result["longitude"] = location.longitude
+            result["altitude"] = location.altitude
+            result["accuracy"] = location.accuracy
+            result["speed"] = location.speed
+            result["bearing"] = location.bearing
+            result["time"] = location.time
+            result["sourceProvider"] = location.sourceProvider
+            result["fakeReason"] = location.fakeReason
+            result["fakeProbability"] = location.fakeProbability
+            result["nationCode"] = location.nationCode
+            result["cityCode"] = location.cityCode
+            result["province"] = location.province
+            result["city"] = location.city
+            result["district"] = location.district
+            result["street"] = location.street
+            result["streetNo"] = location.streetNo
+            result["town"] = location.town
+            result["village"] = location.village
+            // 成功状态码
             result["code"] = TencentLocation.ERROR_OK
             sendLocationToFlutter(result)
         } else {
@@ -130,7 +148,8 @@ class FlutterTencentLBSPlugin : FlutterPlugin, MethodCallHandler, TencentLocatio
     // 连续定位
     private fun getLocation(call: MethodCall) {
         val args = call.arguments as Map<*, *>?
-        val interval: Long = getInt(args, "interval")?.toLong() ?: (1000 * 15)
+//        val interval: Long = getInt(args, "interval")?.toLong() ?: (1000 * 15)
+        val interval: Long = 1000
         val backgroundLocation = getBoolean(args, "backgroundLocation") ?: false
         if (!isListenLocationUpdates) {
             isListenLocationUpdates = true

@@ -41,10 +41,30 @@ class Location {
   //city编码
   String? cityCode;
 
+  // 位置提供者
+  String? provider;
+
+  // 精度
+  double? accuracy;
+
+  // 👇 新增字段
+  double? speed;
+  double? bearing;
+  int? time;
+  String? sourceProvider;
+  int? fakeReason;
+  double? fakeProbability;
+  int? nationCode;
+  String? street;
+  String? streetNo;
+  String? town;
+  String? village;
+
   int code = 1;
 
   Map<String, dynamic> toJson() {
     final map = <String, dynamic>{};
+    map['provider'] = provider;
     map['latitude'] = latitude;
     map['longitude'] = longitude;
     map['address'] = address;
@@ -53,6 +73,20 @@ class Location {
     map['province'] = province;
     map['area'] = area;
     map['cityCode'] = cityCode;
+    map['accuracy'] = accuracy;
+    map['altitude'] = altitude;
+    map['speed'] = speed;
+    map['bearing'] = bearing;
+    map['time'] = time;
+    map['sourceProvider'] = sourceProvider;
+    map['fakeReason'] = fakeReason;
+    map['fakeProbability'] = fakeProbability;
+    map['nationCode'] = nationCode;
+    map['street'] = street;
+    map['streetNo'] = streetNo;
+    map['town'] = town;
+    map['village'] = village;
+
     return map;
   }
 }

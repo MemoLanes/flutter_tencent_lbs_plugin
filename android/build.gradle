@@ -68,5 +68,5 @@ android {
 }
 
 dependencies {
-    api files('libs/TencentLocationSDK_v7.5.4.3_r279ab2c6b_20240119160704_release.jar')
+    api 'com.tencent.map.geolocation:TencentLocationSdk-openplatform:7.6.1'
 }

@@ -1,9 +1,9 @@
 class TencentLBSLocationCoordinateType {
   /// 火星坐标，即国测局坐标
-  static const int GCJ02 = 0;
+  static const int GCJ02 = 1;
 
   /// 地球坐标，注：如果是海外，无论设置的是火星坐标还是地球坐标，返回的都是地球坐标
-  static const int WGS84 = 1;
+  static const int WGS84 = 0;
 }
 
 class TencentLBSRequestLevel {
