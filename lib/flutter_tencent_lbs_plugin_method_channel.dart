@@ -112,7 +112,7 @@ class MethodChannelFlutterTencentLBSPlugin
   }
 
   @override
-  void getLocation({
+  Future<void> getLocation({
     required int interval,
     AndroidNotificationOptions? androidNotificationOptions,
     bool backgroundLocation = false,

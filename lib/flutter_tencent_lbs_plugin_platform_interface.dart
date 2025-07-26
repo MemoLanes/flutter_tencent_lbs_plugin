@@ -44,7 +44,7 @@ abstract class FlutterTencentLBSPluginPlatform extends PlatformInterface {
     throw UnimplementedError('setUserAgreePrivacy() has not been implemented.');
   }
 
-  void getLocation({
+  Future<void> getLocation({
     required int interval,
     AndroidNotificationOptions? androidNotificationOptions,
     bool backgroundLocation = false,

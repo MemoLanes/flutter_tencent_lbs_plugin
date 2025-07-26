@@ -78,7 +78,7 @@ class FlutterTencentLBSPlugin {
     AndroidNotificationOptions? androidNotificationOptions,
     bool backgroundLocation = false,
   }) async {
-    return FlutterTencentLBSPluginPlatform.instance.getLocation(
+    return await FlutterTencentLBSPluginPlatform.instance.getLocation(
       interval: interval,
       androidNotificationOptions: androidNotificationOptions,
       backgroundLocation: backgroundLocation,
