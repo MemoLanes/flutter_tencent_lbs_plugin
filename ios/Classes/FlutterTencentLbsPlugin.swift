@@ -122,14 +122,14 @@ public class FlutterTencentLBSPlugin: NSObject, FlutterPlugin, TencentLBSLocatio
   
   public func createLocationValue(location: TencentLBSLocation?) -> Dictionary<String,Any> {
     var result = Dictionary<String,Any>.init()
-    result["name"] = location?.name
     result["latitude"] = location?.location.coordinate.latitude
     result["longitude"] = location?.location.coordinate.longitude
-    result["address"] = location?.address
-    result["city"] = location?.city
-    result["province"] = location?.province
-    result["area"] = location?.district
-    result["cityCode"] = location?.code
+    result["altitude"] = location?.location.altitude
+    // 使用水平精度作为 accuracy
+    result["accuracy"] = location?.location.horizontalAccuracy
+    result["speed"] = location?.location.speed
+    // 使用时间戳
+    result["time"] = location?.location.timestamp.timeIntervalSince1970
     result["code"] = LocationCode.ERROR_OK
     return result
   }
