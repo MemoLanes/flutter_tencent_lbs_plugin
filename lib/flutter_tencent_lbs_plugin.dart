@@ -6,10 +6,10 @@ import 'model/location.dart';
 import 'state/location_state.dart';
 
 export 'model/android_notification_options.dart';
-export 'model/notification_icon_data.dart';
-export 'model/location.dart';
-export 'model/status.dart';
 export 'model/enum.dart';
+export 'model/location.dart';
+export 'model/notification_icon_data.dart';
+export 'model/status.dart';
 
 class FlutterTencentLBSPlugin {
   Future<bool> init({

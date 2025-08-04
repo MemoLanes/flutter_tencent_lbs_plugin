@@ -30,26 +30,13 @@ class MethodChannelFlutterTencentLBSPlugin
             Location location = Location();
             location.code = methodCall.arguments['code'];
             if (location.code == LocationCode.ERROR_OK) {
-              location.name = methodCall.arguments['name'];
               location.latitude = methodCall.arguments['latitude'];
               location.longitude = methodCall.arguments['longitude'];
               location.altitude = methodCall.arguments['altitude'];
               location.accuracy = methodCall.arguments['accuracy'];
               location.speed = methodCall.arguments['speed'];
-              location.bearing = methodCall.arguments['bearing'];
               location.time = methodCall.arguments['time'];
               location.sourceProvider = methodCall.arguments['sourceProvider'];
-              location.fakeReason = methodCall.arguments['fakeReason'];
-              location.fakeProbability = methodCall.arguments['fakeProbability'];
-              location.nationCode = methodCall.arguments['nationCode'];
-              location.province = methodCall.arguments['province'];
-              location.city = methodCall.arguments['city'];
-              location.area = methodCall.arguments['district'];
-              location.street = methodCall.arguments['street'];
-              location.streetNo = methodCall.arguments['streetNo'];
-              location.town = methodCall.arguments['town'];
-              location.village = methodCall.arguments['village'];
-              location.cityCode = methodCall.arguments['cityCode'];
               for (var listener in state.listener) {
                 listener(location);
               }
@@ -100,14 +87,13 @@ class MethodChannelFlutterTencentLBSPlugin
       return null;
     }
     Location location = Location();
-    location.name = data['name'];
     location.latitude = data['latitude'];
     location.longitude = data['longitude'];
-    location.address = data['address'];
-    location.city = data['city'];
-    location.province = data['province'];
-    location.area = data['area'];
-    location.cityCode = data['cityCode'];
+    location.altitude = data['altitude'];
+    location.accuracy = data['accuracy'];
+    location.speed = data['speed'];
+    location.time = data['time'];
+    location.sourceProvider = data['sourceProvider'];
     return location;
   }
 
@@ -118,7 +104,7 @@ class MethodChannelFlutterTencentLBSPlugin
     bool backgroundLocation = false,
   }) async {
     await methodChannel.invokeMethod("getLocation", {
-      "interval": interval.toDouble(),
+      "interval": interval.toInt(),
       "backgroundLocation": backgroundLocation,
       "androidNotificationOptions": androidNotificationOptions?.toJson()
     });
