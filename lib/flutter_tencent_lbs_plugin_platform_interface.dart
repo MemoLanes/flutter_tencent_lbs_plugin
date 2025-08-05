@@ -3,7 +3,6 @@ import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
 import 'flutter_tencent_lbs_plugin_method_channel.dart';
 import 'model/android_notification_options.dart';
-import 'model/location.dart';
 
 abstract class FlutterTencentLBSPluginPlatform extends PlatformInterface {
   FlutterTencentLBSPluginPlatform() : super(token: _token);
@@ -44,7 +43,7 @@ abstract class FlutterTencentLBSPluginPlatform extends PlatformInterface {
     throw UnimplementedError('setUserAgreePrivacy() has not been implemented.');
   }
 
-  Future<Location?> getLocation({
+  Future<void> getLocation({
     required int interval,
     AndroidNotificationOptions? androidNotificationOptions,
     bool backgroundLocation = false,

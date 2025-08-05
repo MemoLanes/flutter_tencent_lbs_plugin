@@ -6,18 +6,18 @@ import 'model/location.dart';
 import 'state/location_state.dart';
 
 export 'model/android_notification_options.dart';
-export 'model/notification_icon_data.dart';
-export 'model/location.dart';
-export 'model/status.dart';
 export 'model/enum.dart';
+export 'model/location.dart';
+export 'model/notification_icon_data.dart';
+export 'model/status.dart';
 
 class FlutterTencentLBSPlugin {
   Future<bool> init({
-    /// 申请的 apiKey（仅对 iOS 生效，Android 需要在 AndroidManifest.xml 中设置）
+    /// 申请的 apiKey
     required String key,
 
     /// 经纬度坐标类型
-    int coordinateType = TencentLBSLocationCoordinateType.GCJ02,
+    int coordinateType = TencentLBSLocationCoordinateType.WGS84,
 
     /// 设置是否允许MockGPS
     bool mockEnable = false,
@@ -73,7 +73,7 @@ class FlutterTencentLBSPlugin {
   }
 
   /// 连续定位
-  Future<Location?> getLocation({
+  Future<void> getLocation({
     required int interval,
     AndroidNotificationOptions? androidNotificationOptions,
     bool backgroundLocation = false,

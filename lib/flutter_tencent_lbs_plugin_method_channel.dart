@@ -30,14 +30,13 @@ class MethodChannelFlutterTencentLBSPlugin
             Location location = Location();
             location.code = methodCall.arguments['code'];
             if (location.code == LocationCode.ERROR_OK) {
-              location.name = await methodCall.arguments['name'];
-              location.latitude = await methodCall.arguments['latitude'];
-              location.longitude = await methodCall.arguments['longitude'];
-              location.address = await methodCall.arguments['address'];
-              location.city = await methodCall.arguments['city'];
-              location.province = await methodCall.arguments['province'];
-              location.area = await methodCall.arguments['area'];
-              location.cityCode = await methodCall.arguments['cityCode'];
+              location.latitude = methodCall.arguments['latitude'];
+              location.longitude = methodCall.arguments['longitude'];
+              location.altitude = methodCall.arguments['altitude'];
+              location.accuracy = methodCall.arguments['accuracy'];
+              location.speed = methodCall.arguments['speed'];
+              location.time = methodCall.arguments['time'];
+              location.sourceProvider = methodCall.arguments['sourceProvider'];
               for (var listener in state.listener) {
                 listener(location);
               }
@@ -88,41 +87,27 @@ class MethodChannelFlutterTencentLBSPlugin
       return null;
     }
     Location location = Location();
-    location.name = data['name'];
     location.latitude = data['latitude'];
     location.longitude = data['longitude'];
-    location.address = data['address'];
-    location.city = data['city'];
-    location.province = data['province'];
-    location.area = data['area'];
-    location.cityCode = data['cityCode'];
+    location.altitude = data['altitude'];
+    location.accuracy = data['accuracy'];
+    location.speed = data['speed'];
+    location.time = data['time'];
+    location.sourceProvider = data['sourceProvider'];
     return location;
   }
 
   @override
-  Future<Location?> getLocation({
+  Future<void> getLocation({
     required int interval,
     AndroidNotificationOptions? androidNotificationOptions,
     bool backgroundLocation = false,
   }) async {
-    final data = await methodChannel.invokeMethod("getLocation", {
-      "interval": interval.toDouble(),
+    await methodChannel.invokeMethod("getLocation", {
+      "interval": interval.toInt(),
       "backgroundLocation": backgroundLocation,
       "androidNotificationOptions": androidNotificationOptions?.toJson()
     });
-    if (data is! Map) {
-      return null;
-    }
-    Location location = Location();
-    location.name = data['name'];
-    location.latitude = data['latitude'];
-    location.longitude = data['longitude'];
-    location.address = data['address'];
-    location.city = data['city'];
-    location.province = data['province'];
-    location.area = data['area'];
-    location.cityCode = data['cityCode'];
-    return location;
   }
 
   @override

@@ -25,21 +25,16 @@ class Location {
 
   ///经度
   double? longitude;
-
-  ///地名
-  String? name;
-
-  ///地址
-  String? address;
-
   ///海拔
   double? altitude;
-  String? province;
-  String? city;
-  String? area;
-
-  //city编码
-  String? cityCode;
+  ///精度
+  double? accuracy;
+  ///速度
+  double? speed;
+  ///时间
+  int? time;
+  ///来源
+  String? sourceProvider;
 
   int code = 1;
 
@@ -47,12 +42,12 @@ class Location {
     final map = <String, dynamic>{};
     map['latitude'] = latitude;
     map['longitude'] = longitude;
-    map['address'] = address;
-    map['name'] = name;
-    map['city'] = city;
-    map['province'] = province;
-    map['area'] = area;
-    map['cityCode'] = cityCode;
+    map['accuracy'] = accuracy;
+    map['altitude'] = altitude;
+    map['speed'] = speed;
+    map['time'] = time;
+    map['sourceProvider'] = sourceProvider;
+
     return map;
   }
 }
