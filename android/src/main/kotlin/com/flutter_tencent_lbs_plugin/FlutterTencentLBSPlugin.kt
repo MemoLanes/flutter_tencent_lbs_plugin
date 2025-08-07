@@ -24,6 +24,7 @@ import com.flutter_tencent_lbs_plugin.models.InitOptions
 import com.flutter_tencent_lbs_plugin.models.NotificationIconData
 import com.flutter_tencent_lbs_plugin.models.NotificationOptions
 import com.flutter_tencent_lbs_plugin.utils.JsonUtils
+import com.flutter_tencent_lbs_plugin.utils.NotificationUtils
 import com.tencent.map.geolocation.TencentLocationManagerOptions
 
 class FlutterTencentLBSPlugin : FlutterPlugin, MethodCallHandler, TencentLocationListener {
@@ -146,9 +147,12 @@ class FlutterTencentLBSPlugin : FlutterPlugin, MethodCallHandler, TencentLocatio
         if (!isListenLocationUpdates) {
             isListenLocationUpdates = true
             tencentLocationRequest.interval = interval
-            if (backgroundLocation) {
-                val options = NotificationOptions.getData(JsonUtils.getMap(args, "androidNotificationOptions"))
-                locationManager.enableForegroundLocation(options.id, buildNotification(options))
+            if (JsonUtils.getBoolean(args, "backgroundLocation") == true) {
+                JsonUtils.getMap(args, "androidNotificationOptions")?.let { optionsMap ->
+                    val options = NotificationOptions.getData(optionsMap)
+                    val notification = NotificationUtils.buildNotification(applicationContext, options)
+                    locationManager.enableForegroundLocation(options.id, notification)
+                }
             }
             locationManager.requestLocationUpdates(tencentLocationRequest, this)
         }
