@@ -1,129 +1,96 @@
 package com.flutter_tencent_lbs_plugin
 
-import android.app.Notification
-import android.app.NotificationChannel
-import android.app.NotificationManager
 import android.content.Context
-import android.content.pm.PackageManager
-import android.graphics.Color
-import android.os.Build
 import android.os.Looper
-import androidx.core.app.NotificationCompat
-import com.tencent.map.geolocation.TencentLocation
-import com.tencent.map.geolocation.TencentLocationListener
-import com.tencent.map.geolocation.TencentLocationManager
-import com.tencent.map.geolocation.TencentLocationRequest
-
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.MethodChannel.Result
-
-import com.flutter_tencent_lbs_plugin.models.InitOptions
-import com.flutter_tencent_lbs_plugin.models.NotificationIconData
 import com.flutter_tencent_lbs_plugin.models.NotificationOptions
 import com.flutter_tencent_lbs_plugin.utils.JsonUtils
-import com.tencent.map.geolocation.TencentLocationManagerOptions
+import com.flutter_tencent_lbs_plugin.utils.NotificationUtils
+import com.tencent.map.geolocation.*
 
 class FlutterTencentLBSPlugin : FlutterPlugin, MethodCallHandler, TencentLocationListener {
     private lateinit var channel: MethodChannel
     private lateinit var applicationContext: Context
-
     private lateinit var locationManager: TencentLocationManager
     private lateinit var tencentLocationRequest: TencentLocationRequest
-    private var resultList: ArrayList<Result> = arrayListOf()
-    private var isListenLocationUpdates = false
 
-    private var isCreateChannel = false
-    private var notificationManager: NotificationManager? = null
+    private val resultList = arrayListOf<Result>()
+    private var isListeningLocationUpdates = false
 
-    override fun onAttachedToEngine(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
-        channel = MethodChannel(flutterPluginBinding.binaryMessenger, "flutter_tencent_lbs_plugin")
+    override fun onAttachedToEngine(binding: FlutterPlugin.FlutterPluginBinding) {
+        channel = MethodChannel(binding.binaryMessenger, "flutter_tencent_lbs_plugin")
         channel.setMethodCallHandler(this)
-        applicationContext = flutterPluginBinding.applicationContext
-    }
-
-    override fun onMethodCall(call: MethodCall, result: Result) {
-        when (call.method) {
-            "setUserAgreePrivacy" -> {
-                TencentLocationManager.setUserAgreePrivacy(true)
-            }
-
-            "init" -> {
-                initTencentLBS(call, result)
-            }
-
-            "getLocationOnce" -> {
-                getLocationOnce(result)
-            }
-
-            "getLocation" -> {
-                getLocation(call)
-                result.success(null)
-            }
-
-            "stopLocation" -> {
-                stopLocation(result)
-            }
-
-            else -> result.notImplemented()
-        }
+        applicationContext = binding.applicationContext
     }
 
     override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
         channel.setMethodCallHandler(null)
     }
 
+    override fun onMethodCall(call: MethodCall, result: Result) {
+        when (call.method) {
+            "setUserAgreePrivacy" -> TencentLocationManager.setUserAgreePrivacy(true)
+            "init" -> initTencentLBS(call, result)
+            "getLocationOnce" -> getLocationOnce(result)
+            "getLocation" -> {
+                getLocation(call)
+                result.success(null)
+            }
+            "stopLocation" -> stopLocation(result)
+            else -> result.notImplemented()
+        }
+    }
+
     override fun onLocationChanged(location: TencentLocation?, error: Int, reason: String?) {
         if (error == TencentLocation.ERROR_OK && location != null) {
-            val result = HashMap<String, Any?>()
-            result["latitude"] = location.latitude
-            result["longitude"] = location.longitude
-            result["altitude"] = location.altitude
-            result["accuracy"] = location.accuracy
-            result["speed"] = location.speed
-            result["time"] = location.time
-            result["sourceProvider"] = location.sourceProvider
-            result["code"] = TencentLocation.ERROR_OK
-            sendLocationToFlutter(result)
+            sendLocationToFlutter(
+                mapOf(
+                    "latitude" to location.latitude,
+                    "longitude" to location.longitude,
+                    "altitude" to location.altitude,
+                    "accuracy" to location.accuracy,
+                    "speed" to location.speed,
+                    "time" to location.time,
+                    "sourceProvider" to location.sourceProvider,
+                    "code" to TencentLocation.ERROR_OK
+                )
+            )
         } else {
             sendLocationToFlutter(createErrorResult(error), false)
         }
     }
 
     override fun onStatusUpdate(name: String?, status: Int, desc: String?) {
-        val result = HashMap<String, Any?>()
-        result["name"] = name
-        result["status"] = status
-        channel.invokeMethod("receiveStatus", result)
+        channel.invokeMethod("receiveStatus", mapOf("name" to name, "status" to status))
     }
 
     private fun initTencentLBS(call: MethodCall, result: Result) {
-        val args = call.arguments
-        val argsMap = args as? Map<*, *>
-        if (argsMap == null) {
+        val argsMap = call.arguments as? Map<*, *> ?: run {
             result.error("INVALID_ARGUMENTS", "Arguments must be a map", null)
             return
         }
+        TencentLocationManagerOptions.setKey(JsonUtils.getString(argsMap, "key") ?: "")
 
-        val apiKey = JsonUtils.getString(argsMap, "key") ?: ""
-        TencentLocationManagerOptions.setKey(apiKey)
         locationManager = TencentLocationManager.getInstance(applicationContext)
+
+        locationManager.coordinateType = JsonUtils.getInt(argsMap, "coordinateType") ?: locationManager.coordinateType
+        locationManager.setMockEnable(JsonUtils.getBoolean(argsMap, "mockEnable") ?: false)
+
         tencentLocationRequest = TencentLocationRequest.create()
+        tencentLocationRequest.requestLevel = JsonUtils.getInt(argsMap, "requestLevel") ?: tencentLocationRequest.requestLevel
+        tencentLocationRequest.locMode = JsonUtils.getInt(argsMap, "locMode") ?: TencentLocationRequest.HIGH_ACCURACY_MODE
+        tencentLocationRequest.isAllowGPS = JsonUtils.getBoolean(argsMap, "isAllowGPS") ?: tencentLocationRequest.isAllowGPS
+        tencentLocationRequest.isIndoorLocationMode = JsonUtils.getBoolean(argsMap, "isIndoorLocationMode") ?: tencentLocationRequest.isIndoorLocationMode
+        tencentLocationRequest.isGpsFirst = JsonUtils.getBoolean(argsMap, "isGpsFirst") ?: tencentLocationRequest.isGpsFirst
+        tencentLocationRequest.gpsFirstTimeOut = JsonUtils.getInt(argsMap, "gpsFirstTimeOut") ?: tencentLocationRequest.gpsFirstTimeOut
 
-        val options = InitOptions.getData(locationManager, tencentLocationRequest, args)
-        locationManager.coordinateType = options.coordinateType
-        locationManager.setMockEnable(options.mockEnable)
-
-        tencentLocationRequest.requestLevel = options.requestLevel
-        tencentLocationRequest.locMode = options.locMode
-        tencentLocationRequest.isAllowGPS = options.isAllowGPS
-        tencentLocationRequest.isIndoorLocationMode = options.isIndoorLocationMode
-        tencentLocationRequest.isGpsFirst = options.isGpsFirst
-        tencentLocationRequest.gpsFirstTimeOut = options.gpsFirstTimeOut
         result.success(true)
     }
+
 
     // 单次定位
     private fun getLocationOnce(result: Result) {
@@ -132,7 +99,7 @@ class FlutterTencentLBSPlugin : FlutterPlugin, MethodCallHandler, TencentLocatio
             resultList.add(result)
         } else {
             val errResult = createErrorResult(error)
-            sendErrorLocationToFlutter(result, errResult)
+            sendResultToFlutter(result, errResult, false)
             notifyLocationRecipients(errResult)
         }
     }
@@ -140,157 +107,46 @@ class FlutterTencentLBSPlugin : FlutterPlugin, MethodCallHandler, TencentLocatio
 
     // 连续定位
     private fun getLocation(call: MethodCall) {
-        val args = call.arguments as Map<*, *>?
-        val interval: Long = JsonUtils.getInt(args, "interval")?.toLong() ?: 1000
-        val backgroundLocation = JsonUtils.getBoolean(args, "backgroundLocation") ?: false
-        if (!isListenLocationUpdates) {
-            isListenLocationUpdates = true
+        val args = call.arguments as? Map<*, *>
+        val interval = JsonUtils.getInt(args, "interval")?.toLong() ?: 1000
+
+        if (!isListeningLocationUpdates) {
+            isListeningLocationUpdates = true
             tencentLocationRequest.interval = interval
-            if (backgroundLocation) {
-                val options = NotificationOptions.getData(JsonUtils.getMap(args, "androidNotificationOptions"))
-                locationManager.enableForegroundLocation(options.id, buildNotification(options))
+
+            if (JsonUtils.getBoolean(args, "backgroundLocation") == true) {
+                JsonUtils.getMap(args, "androidNotificationOptions")?.let { optionsMap ->
+                    val options = NotificationOptions.getData(optionsMap)
+                    locationManager.enableForegroundLocation(options.id,
+                        NotificationUtils.buildNotification(applicationContext, options))
+                }
             }
             locationManager.requestLocationUpdates(tencentLocationRequest, this)
         }
     }
 
     private fun stopLocation(result: Result) {
-        isListenLocationUpdates = false
+        isListeningLocationUpdates = false
         resultList.clear()
         locationManager.disableForegroundLocation(true)
         locationManager.removeUpdates(this)
         result.success(true)
     }
 
-    private fun sendErrorLocationToFlutter(result: Result?, value: Any) {
-        result?.error((value as HashMap<*, *>)["code"].toString(), "Err", value)
-    }
-
-    private fun sendSuccessLocationToFlutter(result: Result?, value: Any) {
-        result?.success(value)
+    private fun sendResultToFlutter(result: Result?, value: Any, isSuccess: Boolean) {
+        if (isSuccess) result?.success(value)
+        else result?.error((value as Map<*, *>)["code"].toString(), "Err", value)
     }
 
     private fun sendLocationToFlutter(value: Any, isSuccess: Boolean = true) {
-        for (result in resultList.iterator()) {
-            if (isSuccess) {
-                sendSuccessLocationToFlutter(result, value)
-            } else {
-                sendErrorLocationToFlutter(result, value)
-            }
-        }
+        resultList.forEach { sendResultToFlutter(it, value, isSuccess) }
         resultList.clear()
         notifyLocationRecipients(value)
-    }
-
-    private fun createErrorResult(code: Int): HashMap<String, Any> {
-        val result = HashMap<String, Any>()
-        result["code"] = code
-        return result
     }
 
     private fun notifyLocationRecipients(value: Any) {
         channel.invokeMethod("receiveLocation", value)
     }
 
-    private fun getIconResIdFromIconData(iconData: NotificationIconData): Int {
-        val resType = iconData.resType
-        val resPrefix = iconData.resPrefix
-        val name = iconData.name
-        if (resType.isEmpty() || resPrefix.isEmpty() || name.isEmpty()) {
-            return 0
-        }
-
-        val resName = if (resPrefix.contains("ic")) {
-            String.format("ic_%s", name)
-        } else {
-            String.format("img_%s", name)
-        }
-
-        return applicationContext.resources.getIdentifier(
-            resName,
-            resType,
-            applicationContext.packageName
-        )
-    }
-
-    private fun getIconResIdFromAppInfo(pm: PackageManager): Int {
-        return try {
-            val appInfo =
-                pm.getApplicationInfo(applicationContext.packageName, PackageManager.GET_META_DATA)
-            appInfo.icon
-        } catch (e: PackageManager.NameNotFoundException) {
-            0
-        }
-    }
-
-    private fun getRgbColor(rgb: String): Int? {
-        val rgbSet = rgb.split(",")
-        return if (rgbSet.size == 3) {
-            Color.rgb(rgbSet[0].toInt(), rgbSet[1].toInt(), rgbSet[2].toInt())
-        } else {
-            null
-        }
-    }
-
-    private fun buildNotification(options: NotificationOptions): Notification {
-        val pm = applicationContext.packageManager
-        val iconData: NotificationIconData? = options.iconData
-        val iconBackgroundColor: Int?
-        val iconResId: Int
-        if (iconData != null) {
-            iconBackgroundColor = iconData.backgroundColorRgb?.let(::getRgbColor)
-            iconResId = getIconResIdFromIconData(iconData)
-        } else {
-            iconBackgroundColor = null
-            iconResId = getIconResIdFromAppInfo(pm)
-        }
-        val builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            if (!isCreateChannel) {
-                notificationManager =
-                    applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-
-                val channel = NotificationChannel(
-                    options.channelId,
-                    options.channelName,
-                    NotificationManager.IMPORTANCE_DEFAULT
-                ).apply {
-                    if (!options.playSound) {
-                        setSound(null, null)
-                    }
-                    enableVibration(options.enableVibration)
-                }
-                channel.description = options.channelDescription
-                notificationManager?.createNotificationChannel(channel)
-                isCreateChannel = true
-            }
-            NotificationCompat.Builder(applicationContext, options.channelId).apply {
-                if (iconBackgroundColor != null) {
-                    color = iconBackgroundColor
-                }
-                priority = NotificationCompat.PRIORITY_LOW
-                setSmallIcon(iconResId)
-                setContentTitle(options.contentTitle)
-                setContentText(options.contentText)
-                setShowWhen(options.showWhen)
-            }
-        } else {
-            NotificationCompat.Builder(applicationContext).apply {
-                if (!options.playSound) {
-                    setSound(null)
-                }
-                if (iconBackgroundColor != null) {
-                    color = iconBackgroundColor
-                }
-                if (!options.enableVibration) {
-                    setVibrate(longArrayOf(0L))
-                }
-                priority = NotificationCompat.PRIORITY_LOW
-                setSmallIcon(iconResId)
-                setContentTitle(options.contentTitle)
-                setContentText(options.contentText)
-                setShowWhen(options.showWhen)
-            }
-        }.build()
-        return builder
-    }
+    private fun createErrorResult(code: Int) = hashMapOf("code" to code)
 }

@@ -76,7 +76,7 @@ class _MainAppState extends State<MainApp> {
                       builder: (context) {
                         return AlertDialog(
                           content: Text(
-                            "${value?.address ?? "N/A"}${value?.name ?? "N/A"}",
+                            "${value?.latitude ?? "N/A"}${value?.longitude ?? "N/A"}",
                           ),
                         );
                       },
