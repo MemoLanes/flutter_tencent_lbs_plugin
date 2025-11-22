@@ -76,7 +76,7 @@ class _MainAppState extends State<MainApp> {
                       builder: (context) {
                         return AlertDialog(
                           content: Text(
-                            "${value?.address ?? "N/A"}${value?.name ?? "N/A"}",
+                            "${value?.longitude ?? "N/A"},${value?.latitude ?? "N/A"}",
                           ),
                         );
                       },
@@ -92,7 +92,7 @@ class _MainAppState extends State<MainApp> {
             FilledButton(
               onPressed: () {
                 locationPlugin.getLocation(
-                  interval: 1000 * 15,
+                  interval: 1000,
                   backgroundLocation: true,
                   androidNotificationOptions: AndroidNotificationOptions(
                     id: 100,
