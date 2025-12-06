@@ -52,7 +52,7 @@ class FlutterTencentLBSPlugin {
   }) async {
     return await FlutterTencentLBSPluginPlatform.instance.init(
       key: key,
-      coordinateType: coordinateType ?? TencentLBSLocationCoordinateType.GCJ02,
+      coordinateType: coordinateType ?? TencentLBSLocationCoordinateType.WGS84,
       mockEnable: mockEnable,
       requestLevel: requestLevel,
       locMode: locMode,
