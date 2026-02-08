@@ -47,8 +47,27 @@ abstract class FlutterTencentLBSPluginPlatform extends PlatformInterface {
     required int interval,
     AndroidNotificationOptions? androidNotificationOptions,
     bool backgroundLocation = false,
+    int? requestLevel,
+    int? locMode,
+    bool? allowGps,
+    bool? allowCache,
+    bool? gpsFirst,
+    int? gpsFirstTimeOutMs,
   }) {
     throw UnimplementedError('getLocation() has not been implemented.');
+  }
+
+  /// 连续定位开启后可调用，更新超时时间、定位间隔等参数（与 SDK 文档一致）。
+  Future<void> updateLocationRequest({
+    int? intervalMs,
+    int? requestLevel,
+    int? locMode,
+    int? gpsFirstTimeOutMs,
+    bool? allowGps,
+    bool? allowCache,
+    bool? gpsFirst,
+  }) {
+    throw UnimplementedError('updateLocationRequest() has not been implemented.');
   }
 
   Future<dynamic> getLocationOnce() {

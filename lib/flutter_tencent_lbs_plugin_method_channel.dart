@@ -102,12 +102,32 @@ class MethodChannelFlutterTencentLBSPlugin
     required int interval,
     AndroidNotificationOptions? androidNotificationOptions,
     bool backgroundLocation = false,
+    int? requestLevel,
+    int? locMode,
+    bool? allowGps,
+    bool? allowCache,
+    bool? gpsFirst,
+    int? gpsFirstTimeOutMs,
   }) async {
     await methodChannel.invokeMethod("getLocation", {
       "interval": interval.toInt(),
       "backgroundLocation": backgroundLocation,
       "androidNotificationOptions": androidNotificationOptions?.toJson()
     });
+  }
+
+  @override
+  Future<void> updateLocationRequest({
+    int? intervalMs,
+    int? requestLevel,
+    int? locMode,
+    int? gpsFirstTimeOutMs,
+    bool? allowGps,
+    bool? allowCache,
+    bool? gpsFirst,
+  }) async {
+    // MethodChannel 实现已由 Pigeon 替代，此处保留兼容
+    throw UnimplementedError('请使用 Pigeon 实现（默认已启用）');
   }
 
   @override

@@ -1,9 +1,9 @@
 name: flutter_tencent_lbs_plugin_example
-description: Demonstrates how to use the flutter_tencent_lbs_plugin plugin.
-publish_to: 'none'
+description: 腾讯定位插件示例
+publish_to: "none"
 
 environment:
-  sdk: '>=3.1.5 <4.0.0'
+  sdk: ">=3.1.5 <4.0.0"
 
 dependencies:
   flutter:
@@ -12,12 +12,8 @@ dependencies:
     path: ../
   cupertino_icons: ^1.0.2
   permission_handler: ^11.0.1
-  flutter_local_notifications: ^16.2.0
-  intl: ^0.18.0
 
 dev_dependencies:
-  integration_test:
-    sdk: flutter
   flutter_test:
     sdk: flutter
   flutter_lints: ^2.0.0
