@@ -473,8 +473,9 @@ class TencentLBSHostApi {
 
   final String pigeonVar_messageChannelSuffix;
 
-  Future<bool> init(InitOptions options) async {
-    final String pigeonVar_channelName = 'dev.flutter.pigeon.flutter_tencent_lbs_plugin.TencentLBSHostApi.init$pigeonVar_messageChannelSuffix';
+  /// 对应 SDK 初始化（方法名避免 Swift 保留字 init）
+  Future<bool> configure(InitOptions options) async {
+    final String pigeonVar_channelName = 'dev.flutter.pigeon.flutter_tencent_lbs_plugin.TencentLBSHostApi.configure$pigeonVar_messageChannelSuffix';
     final BasicMessageChannel<Object?> pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,

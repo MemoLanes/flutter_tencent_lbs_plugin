@@ -165,8 +165,10 @@ NS_ASSUME_NONNULL_BEGIN
 NSObject<FlutterMessageCodec> *FLTGetLocationPigeonCodec(void);
 
 @protocol FLTTencentLBSHostApi
+/// 对应 SDK 初始化（方法名避免 Swift 保留字 init）
+///
 /// @return `nil` only when `error != nil`.
-- (nullable NSNumber *)initOptions:(FLTInitOptions *)options error:(FlutterError *_Nullable *_Nonnull)error;
+- (nullable NSNumber *)configureOptions:(FLTInitOptions *)options error:(FlutterError *_Nullable *_Nonnull)error;
 - (void)setUserAgreePrivacyAgree:(BOOL)agree error:(FlutterError *_Nullable *_Nonnull)error;
 - (void)requestLocationOnceWithError:(FlutterError *_Nullable *_Nonnull)error;
 - (void)startLocationUpdatesRequest:(FLTContinuousLocationRequest *)request androidNotificationOptions:(nullable FLTAndroidNotificationOptions *)androidNotificationOptions error:(FlutterError *_Nullable *_Nonnull)error;

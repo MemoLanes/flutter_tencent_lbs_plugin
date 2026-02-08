@@ -23,7 +23,7 @@ class TencentLBSHostApiImpl(
     private var tencentLocationRequest: TencentLocationRequest? = null
     private var isListeningLocationUpdates = false
 
-    override fun init(options: InitOptions): Boolean {
+    override fun configure(options: InitOptions): Boolean {
         TencentLocationManagerOptions.setKey(options.apiKey)
         locationManager = TencentLocationManager.getInstance(context)
 

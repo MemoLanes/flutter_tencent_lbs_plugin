@@ -14,6 +14,8 @@ import 'package:pigeon/pigeon.dart';
   objcHeaderOut: 'ios/Classes/pigeon/LocationPigeon.h',
   objcSourceOut: 'ios/Classes/pigeon/LocationPigeon.m',
   objcOptions: ObjcOptions(prefix: 'FLT'),
+  swiftOut: 'ios/Classes/pigeon/LocationPigeon.swift',
+  swiftOptions: SwiftOptions(),
 ))
 
 // ========== 与 Android TencentLocationRequest / iOS TencentLBSLocationManager 对齐 ==========
@@ -168,7 +170,8 @@ class LocationStatusData {
 
 @HostApi()
 abstract class TencentLBSHostApi {
-  bool init(InitOptions options);
+  /// 对应 SDK 初始化（方法名避免 Swift 保留字 init）
+  bool configure(InitOptions options);
   void setUserAgreePrivacy(bool agree);
   void requestLocationOnce();
   void startLocationUpdates(ContinuousLocationRequest request, AndroidNotificationOptions? androidNotificationOptions);

@@ -2,28 +2,27 @@ import Flutter
 import UIKit
 import TencentLBS
 
-/// Pigeon Host API 实现，与腾讯定位 SDK 文档对齐。
+/// Pigeon Host API 实现（Swift 协议），与腾讯定位 SDK 文档对齐。
 /// 坐标系：Flutter 统一 0=GCJ02, 1=WGS84 → iOS TencentLBSLocationCoordinateTypeGCJ02=0, WGS84=1
-final class TencentLBSHostApiImpl: NSObject, FLTTencentLBSHostApi, TencentLBSLocationManagerDelegate {
+final class TencentLBSHostApiImpl: NSObject, TencentLBSHostApi, TencentLBSLocationManagerDelegate {
     private var locationManager: TencentLBSLocationManager?
-    private var flutterApi: FLTTencentLBSFlutterApi?
+    private var flutterApi: TencentLBSFlutterApi?
     private var isListenLocationUpdates = false
 
     override init() {
         super.init()
     }
 
-    func initOptions(_ options: FLTInitOptions, error: AutoreleasingUnsafeMutablePointer<FlutterError?>) -> NSNumber? {
+    func configure(options: InitOptions) throws -> Bool {
         let manager = TencentLBSLocationManager()
         manager.delegate = self
         manager.apiKey = options.apiKey
-        manager.enableAntiMockLocation = options.mockEnable?.boolValue ?? false
+        manager.enableAntiMockLocation = options.mockEnable ?? false
 
-        if let ct = options.coordinateType?.intValue {
-            // Flutter: 0=GCJ02, 1=WGS84 与 iOS 一致
+        if let ct = options.coordinateType {
             manager.coordinateType = ct == 0 ? .GCJ02 : .WGS84
         }
-        if let rl = options.requestLevel?.intValue {
+        if let rl = options.requestLevel {
             let level: TencentLBSRequestLevel = {
                 switch rl {
                 case 0: return .geo
@@ -36,34 +35,34 @@ final class TencentLBSHostApiImpl: NSObject, FLTTencentLBSHostApi, TencentLBSLoc
             manager.requestLevel = level
         }
         locationManager = manager
-        return NSNumber(value: true)
+        return true
     }
 
-    func setUserAgreePrivacyAgree(_ agree: Bool, error: AutoreleasingUnsafeMutablePointer<FlutterError?>) {
+    func setUserAgreePrivacy(agree: Bool) throws {
         TencentLBSLocationManager.setUserAgreePrivacy(agree)
     }
 
-    func requestLocationOnceWithError(_ error: AutoreleasingUnsafeMutablePointer<FlutterError?>) {
+    func requestLocationOnce() throws {
         locationManager?.requestLocation(completionBlock: { [weak self] location, err in
             guard let self = self else { return }
             if let e = err {
                 let code = (e as NSError).code
-                self.flutterApi?.onErrorCode(NSInteger(code), message: e.localizedDescription, completion: { _ in })
+                self.flutterApi?.onError(code: Int64(code), message: e.localizedDescription) { _ in }
             } else if let loc = location {
                 self.sendLocationToFlutter(loc)
             }
         })
     }
 
-    func startLocationUpdatesRequest(_ request: FLTContinuousLocationRequest, androidNotificationOptions: FLTAndroidNotificationOptions?, error: AutoreleasingUnsafeMutablePointer<FlutterError?>) {
+    func startLocationUpdates(request: ContinuousLocationRequest, androidNotificationOptions: AndroidNotificationOptions?) throws {
         guard let manager = locationManager, !isListenLocationUpdates else { return }
         isListenLocationUpdates = true
         manager.locationCallbackInterval = UInt64(request.intervalMs)
-        if request.backgroundLocation?.boolValue == true {
+        if request.backgroundLocation == true {
             manager.allowsBackgroundLocationUpdates = true
             manager.pausesLocationUpdatesAutomatically = false
         }
-        if let rl = request.requestLevel?.intValue {
+        if let rl = request.requestLevel {
             let level: TencentLBSRequestLevel = {
                 switch rl {
                 case 0: return .geo
@@ -78,12 +77,14 @@ final class TencentLBSHostApiImpl: NSObject, FLTTencentLBSHostApi, TencentLBSLoc
         manager.startUpdatingLocation()
     }
 
-    func updateLocationRequestUpdate(_ update: FLTLocationRequestUpdate?, error: AutoreleasingUnsafeMutablePointer<FlutterError?>) {
+    func updateLocationRequest(update: LocationRequestUpdate?) throws {
         guard let manager = locationManager, let update = update, isListenLocationUpdates else { return }
-        if let interval = update.intervalMs?.uint64Value, interval > 0 {
-            manager.locationCallbackInterval = interval
+        var needRestart = false
+        if let interval = update.intervalMs, interval > 0 {
+            manager.locationCallbackInterval = UInt64(interval)
+            needRestart = true
         }
-        if let rl = update.requestLevel?.intValue {
+        if let rl = update.requestLevel {
             let level: TencentLBSRequestLevel = {
                 switch rl {
                 case 0: return .geo
@@ -94,16 +95,47 @@ final class TencentLBSHostApiImpl: NSObject, FLTTencentLBSHostApi, TencentLBSLoc
                 }
             }()
             manager.requestLevel = level
+            needRestart = true
+        }
+        // iOS 上修改 locationCallbackInterval / requestLevel 后需重启定位才会生效。
+        // 在后台时用 background task 保护，避免 stop 与 start 之间被系统挂起导致定位未重新开启。
+        if needRestart {
+            let isBackground = UIApplication.shared.applicationState == .background
+            var taskId: UIBackgroundTaskIdentifier = .invalid
+            if isBackground {
+                taskId = UIApplication.shared.beginBackgroundTask(withName: "TencentLBSRestart") { [weak self] in
+                    guard let self = self else { return }
+                    if Self._restartTaskId != .invalid {
+                        UIApplication.shared.endBackgroundTask(Self._restartTaskId)
+                        Self._restartTaskId = .invalid
+                    }
+                }
+                Self._restartTaskId = taskId
+            }
+
+            manager.stopUpdatingLocation()
+            manager.startUpdatingLocation()
+
+            if isBackground, taskId != .invalid {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    if Self._restartTaskId != .invalid {
+                        UIApplication.shared.endBackgroundTask(Self._restartTaskId)
+                        Self._restartTaskId = .invalid
+                    }
+                }
+            }
         }
     }
 
-    func stopLocationUpdatesWithError(_ error: AutoreleasingUnsafeMutablePointer<FlutterError?>) {
+    private static var _restartTaskId: UIBackgroundTaskIdentifier = .invalid
+
+    func stopLocationUpdates() throws {
         isListenLocationUpdates = false
         locationManager?.stopUpdatingLocation()
     }
 
     func setBinaryMessenger(_ messenger: FlutterBinaryMessenger) {
-        flutterApi = FLTTencentLBSFlutterApi(binaryMessenger: messenger)
+        flutterApi = TencentLBSFlutterApi(binaryMessenger: messenger)
     }
 
     // MARK: - TencentLBSLocationManagerDelegate
@@ -113,26 +145,25 @@ final class TencentLBSHostApiImpl: NSObject, FLTTencentLBSHostApi, TencentLBSLoc
 
     func tencentLBSLocationManager(_ manager: TencentLBSLocationManager, didFailWithError error: Error) {
         let code = (error as NSError).code
-        flutterApi?.onErrorCode(NSInteger(code), message: error.localizedDescription, completion: { _ in })
+        flutterApi?.onError(code: Int64(code), message: error.localizedDescription) { _ in }
     }
 
     private func sendLocationToFlutter(_ location: TencentLBSLocation) {
-        let lat = location.location?.coordinate.latitude ?? 0
-        let lon = location.location?.coordinate.longitude ?? 0
-        let data = FLTLocationData.make(
-            withCode: NSNumber(value: 0),
-            latitude: NSNumber(value: lat),
-            longitude: NSNumber(value: lon),
-            altitude: NSNumber(value: location.location?.altitude ?? 0),
-            accuracy: NSNumber(value: location.location?.horizontalAccuracy ?? 0),
-            speed: NSNumber(value: location.location?.speed ?? 0),
+        let cl = location.location
+        let data = LocationData(
+            code: 0,
+            latitude: cl.coordinate.latitude,
+            longitude: cl.coordinate.longitude,
+            altitude: cl.altitude,
+            accuracy: cl.horizontalAccuracy,
+            speed: cl.speed >= 0 ? cl.speed : 0,
             bearing: nil,
             address: location.address,
             name: location.name,
             timeIso: nil,
-            timeMs: NSNumber(value: Int((location.location?.timestamp.timeIntervalSince1970 ?? 0) * 1000)),
+            timeMs: Int64(cl.timestamp.timeIntervalSince1970 * 1000),
             sourceProvider: nil
         )
-        flutterApi?.onLocationLocation(data, completion: { _ in })
+        flutterApi?.onLocation(location: data) { _ in }
     }
 }

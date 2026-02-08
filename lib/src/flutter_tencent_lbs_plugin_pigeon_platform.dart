@@ -43,7 +43,7 @@ class FlutterTencentLBSPluginPigeonPlatform extends FlutterTencentLBSPluginPlatf
       gpsFirst: isGpsFirst,
       gpsFirstTimeOutMs: gpsFirstTimeOut,
     );
-    return _hostApi.init(options);
+    return _hostApi.configure(options);
   }
 
   @override

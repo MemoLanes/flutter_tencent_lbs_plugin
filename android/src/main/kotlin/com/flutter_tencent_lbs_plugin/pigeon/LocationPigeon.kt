@@ -415,7 +415,8 @@ private open class LocationPigeonPigeonCodec : StandardMessageCodec() {
 
 /** Generated interface from Pigeon that represents a handler of messages from Flutter. */
 interface TencentLBSHostApi {
-  fun init(options: InitOptions): Boolean
+  /** 对应 SDK 初始化（方法名避免 Swift 保留字 init） */
+  fun configure(options: InitOptions): Boolean
   fun setUserAgreePrivacy(agree: Boolean)
   fun requestLocationOnce()
   fun startLocationUpdates(request: ContinuousLocationRequest, androidNotificationOptions: AndroidNotificationOptions?)
@@ -433,13 +434,13 @@ interface TencentLBSHostApi {
     fun setUp(binaryMessenger: BinaryMessenger, api: TencentLBSHostApi?, messageChannelSuffix: String = "") {
       val separatedMessageChannelSuffix = if (messageChannelSuffix.isNotEmpty()) ".$messageChannelSuffix" else ""
       run {
-        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.flutter_tencent_lbs_plugin.TencentLBSHostApi.init$separatedMessageChannelSuffix", codec)
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.flutter_tencent_lbs_plugin.TencentLBSHostApi.configure$separatedMessageChannelSuffix", codec)
         if (api != null) {
           channel.setMessageHandler { message, reply ->
             val args = message as List<Any?>
             val optionsArg = args[0] as InitOptions
             val wrapped: List<Any?> = try {
-              listOf(api.init(optionsArg))
+              listOf(api.configure(optionsArg))
             } catch (exception: Throwable) {
               wrapError(exception)
             }

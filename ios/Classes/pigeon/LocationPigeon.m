@@ -474,19 +474,20 @@ void SetUpFLTTencentLBSHostApi(id<FlutterBinaryMessenger> binaryMessenger, NSObj
 
 void SetUpFLTTencentLBSHostApiWithSuffix(id<FlutterBinaryMessenger> binaryMessenger, NSObject<FLTTencentLBSHostApi> *api, NSString *messageChannelSuffix) {
   messageChannelSuffix = messageChannelSuffix.length > 0 ? [NSString stringWithFormat: @".%@", messageChannelSuffix] : @"";
+  /// 对应 SDK 初始化（方法名避免 Swift 保留字 init）
   {
     FlutterBasicMessageChannel *channel =
       [[FlutterBasicMessageChannel alloc]
-        initWithName:[NSString stringWithFormat:@"%@%@", @"dev.flutter.pigeon.flutter_tencent_lbs_plugin.TencentLBSHostApi.init", messageChannelSuffix]
+        initWithName:[NSString stringWithFormat:@"%@%@", @"dev.flutter.pigeon.flutter_tencent_lbs_plugin.TencentLBSHostApi.configure", messageChannelSuffix]
         binaryMessenger:binaryMessenger
         codec:FLTGetLocationPigeonCodec()];
     if (api) {
-      NSCAssert([api respondsToSelector:@selector(initOptions:error:)], @"FLTTencentLBSHostApi api (%@) doesn't respond to @selector(initOptions:error:)", api);
+      NSCAssert([api respondsToSelector:@selector(configureOptions:error:)], @"FLTTencentLBSHostApi api (%@) doesn't respond to @selector(configureOptions:error:)", api);
       [channel setMessageHandler:^(id _Nullable message, FlutterReply callback) {
         NSArray<id> *args = message;
         FLTInitOptions *arg_options = GetNullableObjectAtIndex(args, 0);
         FlutterError *error;
-        NSNumber *output = [api initOptions:arg_options error:&error];
+        NSNumber *output = [api configureOptions:arg_options error:&error];
         callback(wrapResult(output, error));
       }];
     } else {

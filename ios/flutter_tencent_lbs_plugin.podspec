@@ -15,13 +15,12 @@ A new Flutter plugin project.
   s.source           = { :path => '.' }
   s.ios.vendored_frameworks = 'Frameworks/TencentLBS.framework'
   s.vendored_frameworks = 'TencentLBS.framework'
-  s.source_files = 'Classes/**/*'
+  s.source_files = 'Classes/**/*.swift'
   s.dependency 'Flutter'
   s.platform = :ios, '11.0'
   s.pod_target_xcconfig = {
     'DEFINES_MODULE' => 'YES',
     'EXCLUDED_ARCHS[sdk=iphonesimulator*]' => 'arm64 i386',
-    'SWIFT_OBJC_BRIDGING_HEADER' => '$(PODS_TARGET_SRCROOT)/Classes/flutter_tencent_lbs_plugin-Bridging-Header.h'
   }
   s.user_target_xcconfig = { 'DEFINES_MODULE' => 'YES', 'EXCLUDED_ARCHS[sdk=iphonesimulator*]' => 'arm64 i386' }
   s.swift_version = '5.0'
