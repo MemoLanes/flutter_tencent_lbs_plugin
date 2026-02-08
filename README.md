@@ -1,169 +1,275 @@
 # flutter_tencent_lbs_plugin
 
+Flutter 腾讯位置服务 / 定位插件（第三方），基于腾讯定位 SDK 封装，支持单次定位、连续定位、后台定位及运行中修改定位参数。跨端通信使用 **Pigeon**，与官方 SDK 参数对齐。
 
-> ⚠️ 注意：
->
-> 1. 此插件在 iOS Simulator 中不生效。
->
-> 2. 各平台配置摘抄自官方文档，无法及时同步，仅供参考，具体配置请以官方文档为准<br/>
->    [官方 Android 文档](https://lbs.qq.com/mobile/androidLocationSDK/androidGeoGuide/androidGeoOverview)<br/>
->    [官方 iOS 文档](https://lbs.qq.com/mobile/iosLocationSDK/iosGeoGuide/iosGeoOverview)
+---
 
+## 注意事项
 
-## TencentLBS 版本
+1. **iOS 模拟器**：本插件在 iOS Simulator 中不生效，需真机调试。
+2. **官方文档**：各平台配置与能力以腾讯官方文档为准。  
+   - [Android 定位 SDK](https://lbs.qq.com/mobile/androidLocationSDK/androidGeoGuide/androidGeoOverview)  
+   - [iOS 定位 SDK](https://lbs.qq.com/mobile/iosLocationSDK/iosGeoGuide/iosGeoOverview)
 
-| 平台    | 版本号   | 时间       |
-| ------- | -------- | ---------- |
-| Android | v7.6.1.4 | 2025-11-13 |
-| iOS     | v4.3.0   | 2025-11-11 |
+---
 
-## 使用方式
+## SDK 版本
 
-1. 创建实例
-   ```dart
-   final locationPlugin = FlutterTencentLBSPlugin();
-   ```
+| 平台    | 版本号   |
+|---------|----------|
+| Android | 7.6.1.5（Maven: `com.tencent.map.geolocation:TencentLocationSdk-openplatform`） |
+| iOS     | 4.3.0（Frameworks/TencentLBS.framework） |
 
-2. 设置用户是否同意隐私协议政策，调用其他接口前必须首先调用此接口进行用户是否同意隐私政策的设置。
-   ```dart
-   locationPlugin.setUserAgreePrivacy();
-   ```
+---
 
-3. 初始化
-   ```dart
-   locationPlugin.init(key: "YOUR KEY");
-   ```
+## 安装
 
-## 单次定位
+在 `pubspec.yaml` 中：
 
-```dart
-// 监听器（可选）
-locationPlugin.addLocationListener((location) {
-  print(location);
-});
-
-// Future 用法
-locationPlugin.getLocationOnce().then((location) {
-  print(location);
-});
+```yaml
+dependencies:
+  flutter_tencent_lbs_plugin: ^0.2.0  # 或 git 依赖
 ```
 
-## 连续定位
+---
+
+## 快速开始
 
 ```dart
-// 设置监听器
-locationPlugin.addLocationListener((location) {
-  print(location);
+import 'package:flutter_tencent_lbs_plugin/flutter_tencent_lbs_plugin.dart';
+
+final plugin = FlutterTencentLBSPlugin();
+
+// 1. 隐私协议（调用其他接口前必须调用）
+plugin.setUserAgreePrivacy();
+
+// 2. 初始化（传入腾讯地图开放平台申请的 key）
+await plugin.init(key: "YOUR_KEY");
+
+// 3. 单次定位
+final location = await plugin.getLocationOnce();
+print(location);  // Location(code: 0, lat: 39.9, lon: 116.4, ...)
+```
+
+### 连续定位 + 监听 + 运行中改间隔
+
+```dart
+plugin.addLocationListener((location) {
+  if (location.code == 0) {
+    print('位置: $location');
+  }
+});
+plugin.addFailListener((location) {
+  print('失败: ${location.code}');
 });
 
-// 开启连续定位
-locationPlugin.getLocation(
-  interval: 1000 * 15, // 获取定位的间隔时间
-  backgroundLocation: true, // 是否需要设置后台定位，设置为 true 时，请确保 Android、iOS 平台进行相应配置，否则可能抛出异常
-  // Android 端后台定位需要配置常驻通知
+await plugin.getLocation(
+  interval: 10000,  // 10 秒
+  backgroundLocation: true,
   androidNotificationOptions: AndroidNotificationOptions(
     id: 100,
-    channelId: "100",
-    channelName: "定位常驻通知",
-    notificationTitle: "定位常驻通知标题文字",
-    notificationText: "定位常驻通知内容文字",
-    // iconData: const NotificationIconData(
-    //   resType: ResourceType.mipmap,
-    //   resPrefix: ResourcePrefix.ic,
-    //   name: 'launcher',
-    //   backgroundColor: Colors.red,
-    // ),
+    channelId: "location",
+    channelName: "定位服务",
+    notificationTitle: "正在定位",
   ),
 );
+
+// 运行中改为 5 秒间隔
+await plugin.updateLocationRequest(intervalMs: 5000);
+
+// 停止
+plugin.stop();
 ```
 
-## 停止连续定位
+---
+
+## API 说明（供 Agent / 自动化参考）
+
+### 1. 初始化 `init()`
+
+在调用定位前调用一次；可传入与腾讯 SDK 一致的参数。
 
 ```dart
-locationPlugin.stop()
+Future<bool> init({
+  required String key,                    // 腾讯开放平台 apiKey，必填
+  int? coordinateType,                     // 坐标系：见 TencentLBSLocationCoordinateType
+  bool mockEnable = false,                 // 是否允许 Mock 定位
+  int requestLevel = TencentLBSRequestLevel.AdminName,  // 结果级别
+  int locMode = TencentLBSLocMode.HIGH_ACCURACY_MODE,   // 定位模式（仅 Android）
+  bool isAllowGPS = true,                 // Android：是否允许 GPS
+  bool isIndoorLocationMode = false,      // Android：室内定位
+  bool isGpsFirst = false,                 // Android：首次是否等卫星
+  int gpsFirstTimeOut = 5000,             // Android：卫星优先超时 ms，最多 60000
+}) async
 ```
 
+**常用常量（`lib/model/enum.dart`）：**
 
-## Android 端配置
+- **坐标系** `TencentLBSLocationCoordinateType`：`GCJ02 = 0`（火星），`WGS84 = 1`（地球）。
+- **结果级别** `TencentLBSRequestLevel`：`Geo = 0`（仅经纬度），`Name = 1`，`AdminName = 3`，`Poi = 4`。
+- **定位模式** `TencentLBSLocMode`（仅 Android）：`HIGH_ACCURACY_MODE = 10`，`ONLY_NETWORK_MODE = 11`（省电），`ONLY_GPS_MODE = 12`。
 
-### 配置 Key
+### 2. 隐私协议 `setUserAgreePrivacy()`
+
+无参，调用其他接口前必须先调用一次。
+
+### 3. 单次定位 `getLocationOnce()`
 
 ```dart
-   locationPlugin.init(key: "YOUR KEY");
-   ```
+Future<Location?> getLocationOnce() async
+```
 
-### 权限配置
+返回 `Location?`，超时或失败为 `null`；成功时 `location.code == 0`。
+
+### 4. 连续定位 `getLocation()`
+
+```dart
+Future<void> getLocation({
+  required int interval,                           // 回调间隔 ms，建议 ≥ 5000
+  AndroidNotificationOptions? androidNotificationOptions,  // Android 前台通知，后台定位时建议传
+  bool backgroundLocation = false,                  // 是否后台定位
+  int? requestLevel,
+  int? locMode,
+  bool? allowGps,
+  bool? allowCache,
+  bool? gpsFirst,
+  int? gpsFirstTimeOutMs,
+}) async
+```
+
+**Android 后台定位**：需传 `androidNotificationOptions`（通知 id、channelId、channelName、notificationTitle 等），并在 AndroidManifest 中声明前台 Service。
+
+### 5. 运行中修改参数 `updateLocationRequest()`
+
+连续定位已开启后可调用，仅传需要修改的字段。
+
+```dart
+Future<void> updateLocationRequest({
+  int? intervalMs,
+  int? requestLevel,
+  int? locMode,
+  int? gpsFirstTimeOutMs,
+  bool? allowGps,
+  bool? allowCache,
+  bool? gpsFirst,
+}) async
+```
+
+### 6. 监听与停止
+
+```dart
+// 定位成功回调（每次收到位置都会调用）
+void addLocationListener(LocationCallBack listener);   // LocationCallBack = void Function(Location location)
+
+// 定位失败回调（如 code != 0）
+void addFailListener(LocationCallBack listener);
+
+// 状态回调（仅 Android，如 GPS/WiFi 状态变化）
+void addStatusListener(LocationStatusListener listener);  // void Function(LocationStatus? status)
+
+// 停止连续定位
+void stop();
+```
+
+---
+
+## 数据类型（导出自插件）
+
+- **Location**：定位结果。字段：`latitude`, `longitude`, `altitude`, `accuracy`, `speed`, `time`, `sourceProvider`, `code`（0 为成功）。
+- **LocationStatus**：状态回调数据（Android）。`name`, `status`。
+- **AndroidNotificationOptions**：Android 前台通知配置。`id`, `channelId`, `channelName`, `notificationTitle`, `notificationText`, `channelDescription`, `enableVibration`, `playSound`, `showWhen`, `iconData`（可选）。
+- **NotificationIconData**：通知图标。`resType`（ResourceType.drawable/mipmap）, `resPrefix`（ResourcePrefix.ic/img）, `name`, `backgroundColor`（可选）。
+- **枚举类**：`TencentLBSLocationCoordinateType`, `TencentLBSRequestLevel`, `TencentLBSLocMode`（见上文）。
+
+---
+
+## Android 配置
+
+### Key
+
+通过 `plugin.init(key: "YOUR_KEY")` 传入即可。
+
+### 权限（AndroidManifest.xml）
 
 ```xml
-<!-- 通过GPS得到精确位置 -->
 <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
-<!-- 通过网络得到粗略位置 -->
 <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
-<!-- 访问网络，某些位置信息需要从网络服务器获取 -->
 <uses-permission android:name="android.permission.INTERNET"/>
-<!-- 访问WiFi状态，需要WiFi信息用于网络定位 -->
 <uses-permission android:name="android.permission.ACCESS_WIFI_STATE"/>
-<!-- 修改WiFi状态，发起WiFi扫描, 需要WiFi信息用于网络定位 -->
 <uses-permission android:name="android.permission.CHANGE_WIFI_STATE"/>
-<!-- 访问网络状态, 检测网络的可用性，需要网络运营商相关信息用于网络定位 -->
 <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
-<!-- 访问网络的变化, 需要某些信息用于网络定位 -->
 <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE"/>
-<!-- 蓝牙扫描权限 -->
 <uses-permission android:name="android.permission.BLUETOOTH"/>
 <uses-permission android:name="android.permission.BLUETOOTH_ADMIN"/>
-<!-- 前台service权限 -->
 <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
-<!-- 后台定位权限 -->
 <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION"/>
-<!-- A-GPS辅助定位权限，方便GPS快速准确定位 -->
 <uses-permission android:name="android.permission.ACCESS_LOCATION_EXTRA_COMMANDS"/>
 ```
 
-### 配置后台定位（可选）
+### 后台定位（前台 Service）
 
 ```xml
 <application>
-    ...
     <service
         android:name="com.tencent.map.geolocation.s"
         android:foregroundServiceType="location" />
 </application>
-
 ```
 
-> 自行决定是否需要忽略电池优化，此插件不包含该逻辑
+---
 
+## iOS 配置
 
+### Key
 
-## iOS 端配置
+通过 `plugin.init(key: "YOUR_KEY")` 传入。
 
-### 权限配置
+### Info.plist 定位权限
 
-在 info.plist 中追加 `NSLocationWhenInUseUsageDescription` 或`NSLocationAlwaysUsageDescription` 字段，以申请定位权限。
+至少其一：
 
-### 配置后台定位（可选）
+- `NSLocationWhenInUseUsageDescription`
+- `NSLocationAlwaysAndWhenInUseUsageDescription`
+- `NSLocationAlwaysUsageDescription`
 
-使用 Xcode 打开 ios/Runner.xcworkspace
+### 后台定位
 
-`Signing & Capabilities` -> `+ Capability` -> 搜索 “Background Modes” -> 并勾选 `Location updates`
+- Xcode：Signing & Capabilities → + Capability → Background Modes → 勾选 **Location updates**。
+- Info.plist 中 `UIBackgroundModes` 包含 `location`。
 
-![](https://raw.githubusercontent.com/Y-Hui/flutter_tencent_lbs_plugin/main/doc-images/Background%20Modes.png)
+---
+
+## 省电建议（SDK 文档）
+
+- **定位模式**：对精度要求不高时使用 `TencentLBSLocMode.ONLY_NETWORK_MODE`（11），不启 GPS，耗电更低。
+- **间隔**：`interval` / `intervalMs` 适当加大（如 10s、15s）可降低耗电。
+- **allowGps**：Android 可传 `false` 减少 GPS 使用。
+- **gpsFirst / gpsFirstTimeOutMs**：信号差时缩短超时或关闭“GPS 优先”，避免长时间搜星耗电。
+
+---
 
 ## 避坑
 
-### 无法获取地址描述
+- **地址描述**：Android 需 WGS84 才能拿到地址描述；iOS 需 GCJ02。与 SDK 默认行为一致。
+- **修改插件 iOS 源文件后**：若 example 编译报“找不到已删除文件”，在 example 下执行：  
+  `flutter pub get` → `cd ios` → `rm -rf Pods Podfile.lock` → `pod install`，再编译。
 
-Android：需要使用 WGS84 坐标才能获取地址描述
+---
 
-iOS：需要使用 GCJ02 坐标才能获取地址描述
+## 项目结构（供 Agent 修改/扩展时参考）
 
-> 这似乎是 SDK 的默认行为
+- **对外入口**：`lib/flutter_tencent_lbs_plugin.dart`，仅暴露 `FlutterTencentLBSPlugin` 与导出 model。
+- **平台抽象**：`lib/flutter_tencent_lbs_plugin_platform_interface.dart`，定义接口与默认占位实现；实际实现为 Pigeon 平台。
+- **Pigeon 实现**：`lib/src/flutter_tencent_lbs_plugin_pigeon_platform.dart`，实现接口并调用 Pigeon 生成 API；将 Pigeon 的 `LocationData` 转为对外 `Location`。
+- **Pigeon 定义**：`pigeons/location_api.dart`。修改后需执行：  
+  `dart run pigeon --input pigeons/location_api.dart`  
+  会生成：`lib/src/pigeon/location_pigeon.dart`、Android `pigeon/LocationPigeon.kt` 与 `TencentLBSHostApiImpl.kt`、iOS `Classes/pigeon/LocationPigeon.swift`。**序列化格式为 List（按字段顺序），不可改为 Map；维护时只改 pigeons 定义并重新生成即可。**
+- **原生层**：Android 实现位于 `android/.../pigeon/TencentLBSHostApiImpl.kt`；iOS 为 `ios/Classes/TencentLBSHostApiImpl.swift`、`FlutterTencentLbsPlugin.swift`，仅使用 Swift + Pigeon，无 ObjC Pigeon、无 Bridging Header。
+- **已废弃**：无 MethodChannel 实现；iOS 无 ObjC Pigeon 输出；插件不再生成或依赖 `LocationCode`、Bridging Header。
 
-
+---
 
 ## 参考
 
-[tencent_location](https://github.com/maxleexyz/tencent_location)
-
-[flutter_tencent_location](https://pub.dev/packages/flutter_tencent_location)
+- [tencent_location](https://github.com/maxleexyz/tencent_location)
+- [flutter_tencent_location](https://pub.dev/packages/flutter_tencent_location)
