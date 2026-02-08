@@ -18,4 +18,8 @@ class Location {
 
   /// 结果码：0=成功，非 0 为失败（如 1 网络问题、2 权限/采集失败、4 WGS84 转换失败、404 未知）
   int code = 1;
+
+  @override
+  String toString() =>
+      'Location(code: $code, lat: $latitude, lon: $longitude, accuracy: $accuracy, time: $time)';
 }
