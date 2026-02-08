@@ -1,7 +1,6 @@
 import 'package:flutter_tencent_lbs_plugin/state/location_state.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
-import 'flutter_tencent_lbs_plugin_method_channel.dart';
 import 'model/android_notification_options.dart';
 
 abstract class FlutterTencentLBSPluginPlatform extends PlatformInterface {
@@ -9,8 +8,9 @@ abstract class FlutterTencentLBSPluginPlatform extends PlatformInterface {
 
   static final Object _token = Object();
 
+  /// 默认占位，实际由 [FlutterTencentLBSPlugin] 在构造时替换为 Pigeon 实现。
   static FlutterTencentLBSPluginPlatform _instance =
-      MethodChannelFlutterTencentLBSPlugin();
+      _StubFlutterTencentLBSPluginPlatform();
 
   static FlutterTencentLBSPluginPlatform get instance => _instance;
 
@@ -73,4 +73,9 @@ abstract class FlutterTencentLBSPluginPlatform extends PlatformInterface {
   Future<dynamic> getLocationOnce() {
     throw UnimplementedError('getLocationOnce() has not been implemented.');
   }
+}
+
+/// 占位实现，仅用于默认 instance；实际使用前会被替换为 Pigeon 实现。
+class _StubFlutterTencentLBSPluginPlatform extends FlutterTencentLBSPluginPlatform {
+  _StubFlutterTencentLBSPluginPlatform() : super();
 }

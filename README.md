@@ -39,12 +39,12 @@
 ```dart
 // 监听器（可选）
 locationPlugin.addLocationListener((location) {
-  print(location.toJson());
+  print(location);
 });
 
 // Future 用法
 locationPlugin.getLocationOnce().then((location) {
-  print(location.toJson());
+  print(location);
 });
 ```
 
@@ -53,7 +53,7 @@ locationPlugin.getLocationOnce().then((location) {
 ```dart
 // 设置监听器
 locationPlugin.addLocationListener((location) {
-  print(location.toJson());
+  print(location);
 });
 
 // 开启连续定位

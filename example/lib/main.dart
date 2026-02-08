@@ -51,7 +51,7 @@ class _MainAppState extends State<MainApp> {
           _lastError = null;
         });
       }
-      print("[[ listener ]]: ${location.toJson()}");
+      print("[[ listener ]]: $location");
     });
     locationPlugin.addFailListener((location) {
       setState(() {
@@ -130,7 +130,7 @@ class _MainAppState extends State<MainApp> {
             FilledButton(
               onPressed: () {
                 locationPlugin.getLocationOnce().then((value) {
-                  print("[[ getLocationOnce ]]: ${value?.toJson()}");
+                  print("[[ getLocationOnce ]]: $value");
                   if (!mounted) return;
                   showDialog(
                     context: context,

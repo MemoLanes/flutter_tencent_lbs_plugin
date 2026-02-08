@@ -11,9 +11,6 @@ import 'package:pigeon/pigeon.dart';
   kotlinOptions: KotlinOptions(
     package: 'com.flutter_tencent_lbs_plugin.pigeon',
   ),
-  objcHeaderOut: 'ios/Classes/pigeon/LocationPigeon.h',
-  objcSourceOut: 'ios/Classes/pigeon/LocationPigeon.m',
-  objcOptions: ObjcOptions(prefix: 'FLT'),
   swiftOut: 'ios/Classes/pigeon/LocationPigeon.swift',
   swiftOptions: SwiftOptions(),
 ))
