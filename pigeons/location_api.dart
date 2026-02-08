@@ -1,9 +1,10 @@
 import 'package:pigeon/pigeon.dart';
 
-// 生成命令: flutter pub run pigeon --input pigeons/location_api.dart
-// 参数与腾讯定位 SDK 文档对齐:
+// 生成命令: dart run pigeon --input pigeons/location_api.dart
+// 参数与腾讯定位 SDK 文档对齐，注释仅引用 SDK 文档内容：
 // Android: https://mapapi.qq.com/sdk/locationSDK/Android/doc/com/tencent/map/geolocation/package-summary.html
-// iOS: https://mapapi.qq.com/sdk/locationSDK/iOS/doc/appledoc/html/index.html
+//         TencentLocationRequest, TencentLocation, TencentLocationManagerOptions
+// iOS:    https://mapapi.qq.com/sdk/locationSDK/iOS/doc/appledoc/html/index.html
 
 @ConfigurePigeon(PigeonOptions(
   dartOut: 'lib/src/pigeon/location_pigeon.dart',
@@ -15,27 +16,40 @@ import 'package:pigeon/pigeon.dart';
   swiftOptions: SwiftOptions(),
 ))
 
-// ========== 与 Android TencentLocationRequest / iOS TencentLBSLocationManager 对齐 ==========
-// 坐标系: 0=GCJ02, 1=WGS84（原生层按各自 SDK 常量映射）
-// requestLevel: 0=GEO, 1=NAME, 3=ADMIN_AREA, 4=POI
-// locMode(Android): 10=HIGH_ACCURACY, 11=ONLY_NETWORK, 12=ONLY_GPS
+// ========== 常量对照（SDK 文档） ==========
+// coordinateType: 0=GCJ02 火星坐标，1=WGS84 地球坐标（Android TencentLocationManager / iOS TencentLBSLocationCoordinateType）
+// requestLevel:  0=GEO 仅经纬度，1=NAME 经纬度+名称+地址，3=ADMIN_AREA 经纬度+行政区划+地址+名称，4=POI 经纬度+行政区划+附近POI（Android TencentLocationRequest）
+// locMode(Android): 10=HIGH_ACCURACY_MODE 高精度，11=ONLY_NETWORK_MODE 仅网络，12=ONLY_GPS_MODE 仅GPS
 
-/// 初始化参数（对应 init 时设置，与 SDK 文档一致）
+/// 初始化参数。对应 Android TencentLocationManagerOptions + TencentLocationManager + TencentLocationRequest 的初始设置；iOS TencentLBSLocationManager 的 apiKey、coordinateType、requestLevel 等。
 class InitOptions {
+  /// 腾讯开放平台申请的 Key。Android: TencentLocationManagerOptions.setKey；iOS: apiKey。
   String apiKey;
-  /// 0=GCJ02, 1=WGS84
+
+  /// 坐标系类型。0=GCJ02（火星坐标，大陆返回 GCJ02 大陆外返回 WGS84）；1=WGS84（地球坐标，均返回 WGS84）。Android: TencentLocationManager.coordinateType；iOS: TencentLBSLocationCoordinateType。
   int? coordinateType;
+
+  /// 是否允许 Mock 定位。Android: TencentLocationManager.setMockEnable。
   bool? mockEnable;
-  /// 0/1/3/4 对应 GEO/NAME/ADMIN_AREA/POI
+
+  /// 定位结果信息级别。不同 level 结果信息完整程度不同，信息越多消耗流量越多。Android: TencentLocationRequest.setRequestLevel。0=仅经纬度，1=经纬度+位置名称+地址，3=经纬度+行政区划+地址+名称，4=经纬度+行政区划+附近POI。
   int? requestLevel;
-  /// Android: 10/11/12；iOS 忽略
+
+  /// 定位模式（仅 Android）。TencentLocationRequest.setLocMode。10=高精度(网络+卫星)，11=仅网络(不启GPS、省电、精度降低)，12=仅GPS(室外约3-10米，首次较慢耗电高，超时8s无GPS则返回网络)。iOS 无此参数，传参在 iOS 端忽略。
   int? locMode;
+
+  /// 是否允许使用 GPS（仅 Android）。TencentLocationRequest.setAllowGPS，默认允许。允许时室外可提升精度约3-10米，首次较慢耗电较高。仅对高精度定位模式生效。
   bool? allowGps;
+
+  /// 是否启动室内定位（仅 Android）。TencentLocationRequest.setIndoorLocationMode。
   bool? indoorLocationMode;
-  /// 首次是否等待卫星定位结果
+
+  /// 首次定位是否等待卫星定位结果（仅 Android）。TencentLocationRequest.setGpsFirst，默认 false。为 true 时首次定位会等待卫星结果，超时后返回网络定位结果。仅高精度模式生效。
   bool? gpsFirst;
-  /// 卫星定位优先时的超时时间 ms，最多 60000
+
+  /// 卫星定位优先时，等待卫星定位结果的超时时间（仅 Android）。TencentLocationRequest.setGpsFirstTimeOut，单位 ms，最多 60s。
   int? gpsFirstTimeOutMs;
+
   InitOptions({
     required this.apiKey,
     this.coordinateType,
@@ -49,19 +63,32 @@ class InitOptions {
   });
 }
 
-/// 连续定位请求参数（与 TencentLocationRequest 对应）
+/// 连续定位请求参数。对应 Android TencentLocationRequest；iOS 连续定位时的 interval、requestLevel 等。
 class ContinuousLocationRequest {
-  /// 定位周期/回调周期，单位 ms。>0 时按周期回调；0 仅在有新结果时回调。建议 5000–10000
+  /// 定位周期（位置监听器回调周期），单位 ms。Android: TencentLocationRequest.setInterval。大于 0 时按周期定时回调；等于 0 时仅当有新的定位结果时回调。文档建议 5000-10000ms，不建议 1000ms 以下，且不得小于 1000ms。
   int intervalMs;
-  /// 与 InitOptions 一致，不传则用 init 时的值
+
+  /// 定位结果信息级别，同 InitOptions.requestLevel。不传则使用 init 时的值。
   int? requestLevel;
+
+  /// 定位模式（仅 Android），同 InitOptions.locMode。
   int? locMode;
+
+  /// 是否允许使用 GPS（仅 Android），同 InitOptions.allowGps。
   bool? allowGps;
+
+  /// 是否允许使用缓存（仅 Android）。TencentLocationRequest.setAllowCache。允许时用户移动范围较小时可减少网络请求、节省电量和流量；长时间连续定位建议允许，单次定位建议不使用。
   bool? allowCache;
+
+  /// 首次是否等待卫星结果（仅 Android），同 InitOptions.gpsFirst。
   bool? gpsFirst;
+
+  /// 卫星优先超时时间 ms（仅 Android），同 InitOptions.gpsFirstTimeOutMs。
   int? gpsFirstTimeOutMs;
-  /// 是否后台定位（Android 前台通知等）
+
+  /// 是否后台定位。为 true 时 Android 需配合前台通知（enableForegroundLocation）；iOS 需配置后台定位能力。
   bool? backgroundLocation;
+
   ContinuousLocationRequest({
     required this.intervalMs,
     this.requestLevel,
@@ -74,9 +101,7 @@ class ContinuousLocationRequest {
   });
 }
 
-/// 连续定位过程中可更新的参数（仅传需要修改的字段）
-/// Android: 间隔可通过 changeCallbackInterval 修改；其它需重新 requestLocationUpdates
-/// iOS: 可动态改 locationCallbackInterval、requestLevel 等属性
+/// 连续定位过程中可更新的参数，仅传需要修改的字段。Android：间隔可通过 changeCallbackInterval 修改，其它需重新 requestLocationUpdates；iOS：可动态修改 locationCallbackInterval、requestLevel 等。
 class LocationRequestUpdate {
   int? intervalMs;
   int? requestLevel;
@@ -96,17 +121,27 @@ class LocationRequestUpdate {
   });
 }
 
-/// Android 前台定位通知配置
+/// Android 后台定位时的前台通知配置。Android 后台定位需前台服务并显示通知，通过 TencentLocationManager.enableForegroundLocation(notifId, notification) 绑定；id 为通知 ID，channelId/channelName 为通知渠道，notificationTitle/notificationText 为通知标题与内容。
 class AndroidNotificationOptions {
+  /// 前台定位通知 ID，用于 enableForegroundLocation(id, notification)。
   int id;
+  /// 通知渠道 ID（Android NotificationChannel）。
   String channelId;
+  /// 通知渠道名称。
   String channelName;
+  /// 通知渠道描述（可选）。
   String? channelDescription;
+  /// 通知标题。
   String notificationTitle;
+  /// 通知内容（可选）。
   String? notificationText;
+  /// 是否振动。
   bool? enableVibration;
+  /// 是否播放声音。
   bool? playSound;
+  /// 是否显示时间。
   bool? showWhen;
+  /// 通知图标（可选）。Android 侧用 bitmapPath 或 resourceId 解析为 drawable 资源。
   NotificationIconData? iconData;
   AndroidNotificationOptions({
     required this.id,
@@ -122,26 +157,51 @@ class AndroidNotificationOptions {
   });
 }
 
+/// 通知图标数据，用于构建 Android 前台定位通知的小图标。bitmapPath 为本地路径；resourceId 为 Android drawable 资源 ID。
 class NotificationIconData {
   String? bitmapPath;
   int? resourceId;
   NotificationIconData({this.bitmapPath, this.resourceId});
 }
 
-/// 定位结果（与 TencentLocation / TencentLBSLocation 对应）
+/// 定位结果。对应 Android TencentLocation 接口、iOS TencentLBSLocation 返回字段。
 class LocationData {
-  int? code;  // 0=成功
+  /// 错误码。Android TencentLocation：0=ERROR_OK 定位成功，1=ERROR_NETWORK 网络问题，2=ERROR_BAD_JSON GPS/WiFi/基站错误，4=ERROR_WGS84 无法进行坐标转换，404=ERROR_UNKNOWN 未知原因。
+  int? code;
+
+  /// 纬度。TencentLocation.getLatitude。
   double? latitude;
+
+  /// 经度。TencentLocation.getLongitude。
   double? longitude;
+
+  /// 海拔，单位 m。TencentLocation.getAltitude，仅当位置来自 GPS 时可能有效。
   double? altitude;
+
+  /// 精度，单位 m。TencentLocation.getAccuracy。文档：GPS 约 20 米以内，WiFi 30-180 米，基站 150-800 米。
   double? accuracy;
+
+  /// 移动速度，单位 m/s。TencentLocation.getSpeed，仅当位置来自 GPS 时可能有效。
   double? speed;
+
+  /// 方向，单位度。TencentLocation.getBearing，仅当位置来自 GPS 时可能有效。
   double? bearing;
+
+  /// 位置地址。TencentLocation.getAddress，仅当 request level 为 NAME 或 ADMIN_AREA 时非 null。
   String? address;
+
+  /// 位置名称。TencentLocation.getName，仅当 request level 为 NAME 或 ADMIN_AREA 时非 null。
   String? name;
+
+  /// 时间 ISO 字符串（可选，非 SDK 必返字段）。
   String? timeIso;
+
+  /// 当前位置生成时间，毫秒时间戳。TencentLocation.getTime。
   int? timeMs;
+
+  /// 位置细分来源。TencentLocation.getSourceProvider，如 GPS_PROVIDER、NETWORK_PROVIDER、WIFI_PROVIDER、CELL_PROVIDER 等。
   String? sourceProvider;
+
   LocationData({
     this.code,
     this.latitude,
@@ -158,7 +218,7 @@ class LocationData {
   });
 }
 
-/// 状态回调（仅 Android onStatusUpdate）
+/// 状态回调数据（仅 Android）。对应 TencentLocationListener.onStatusUpdate(name, status, desc)。使用 status 前请先按 name 区分设备。name 为设备名如 "GPS"、"WIFI"、"CELL"；status 为状态码，参见 SDK 状态码对照表。
 class LocationStatusData {
   String? name;
   int? status;
@@ -167,13 +227,17 @@ class LocationStatusData {
 
 @HostApi()
 abstract class TencentLBSHostApi {
-  /// 对应 SDK 初始化（方法名避免 Swift 保留字 init）
+  /// SDK 初始化（方法名避免 Swift 保留字 init）。Android: TencentLocationManagerOptions.setKey + TencentLocationManager 实例及 Request 配置；iOS: TencentLBSLocationManager 配置。
   bool configure(InitOptions options);
+  /// 设置用户是否同意隐私政策，调用其他接口前必须调用。对应 SDK setUserAgreePrivacy。
   void setUserAgreePrivacy(bool agree);
+  /// 单次定位。Android: requestSingleFreshLocation；iOS: requestLocation。
   void requestLocationOnce();
+  /// 发起连续定位。Android: requestLocationUpdates；iOS: startUpdatingLocation。androidNotificationOptions 仅 Android 后台定位时用于构建前台通知。
   void startLocationUpdates(ContinuousLocationRequest request, AndroidNotificationOptions? androidNotificationOptions);
-  /// 连续定位开启后可调用，更新部分参数（如超时时间、定位间隔等）
+  /// 连续定位开启后可调用，更新部分参数（如定位间隔、requestLevel 等）。Android 间隔可通过 changeCallbackInterval 修改。
   void updateLocationRequest(LocationRequestUpdate? update);
+  /// 停止连续定位。Android: removeUpdates；iOS: stopUpdatingLocation。
   void stopLocationUpdates();
 }
 
