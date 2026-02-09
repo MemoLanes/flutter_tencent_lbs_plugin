@@ -175,7 +175,7 @@ void stop();
 
 ## 数据类型（导出自插件）
 
-- **Location**：定位结果。字段：`latitude`, `longitude`, `altitude`, `accuracy`, `speed`, `time`, `sourceProvider`（原生原始值）, `locationSource`（双端统一的定位来源码，见 `LocationSource`）, `code`（0 为成功）。
+- **Location**：定位结果。字段：`latitude`, `longitude`, `altitude`, `horizontalAccuracy`, `verticalAccuracy`, `speed`, `bearing`, `time`, `sourceProvider`（原生原始值）, `locationSource`（双端统一）, `code`（0 为成功）。
 - **LocationStatus**：状态回调数据（Android）。`name`, `status`。
 - **AndroidNotificationOptions**：Android 前台通知配置。`id`, `channelId`, `channelName`, `notificationTitle`, `notificationText`, `channelDescription`, `enableVibration`, `playSound`, `showWhen`, `iconData`（可选）。
 - **NotificationIconData**：通知图标。`resType`（ResourceType.drawable/mipmap）, `resPrefix`（ResourcePrefix.ic/img）, `name`, `backgroundColor`（可选）。

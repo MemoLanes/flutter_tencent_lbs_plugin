@@ -125,14 +125,17 @@ class TencentLBSHostApiImpl(
         if (error == TencentLocation.ERROR_OK && location != null) {
             val rawProvider = location.sourceProvider
             val unifiedSource = toUnifiedLocationSource(rawProvider)
+            val acc = location.accuracy.toDouble()
             val data = LocationData(
                 code = error.toLong(),
                 latitude = location.latitude.toDouble(),
                 longitude = location.longitude.toDouble(),
                 altitude = location.altitude.toDouble(),
-                accuracy = location.accuracy.toDouble(),
+                accuracy = acc,
+                horizontalAccuracy = acc,
+                verticalAccuracy = null,
                 speed = location.speed.toDouble(),
-                bearing = null,
+                bearing = location.bearing.toDouble().takeIf { it in 0.0..360.0 },
                 address = location.address,
                 name = location.name,
                 timeIso = null,

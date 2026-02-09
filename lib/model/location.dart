@@ -5,12 +5,21 @@ class Location {
 
   /// 经度
   double? longitude;
-  /// 海拔
+  /// 海拔，单位 m
   double? altitude;
-  /// 精度
-  double? accuracy;
-  /// 速度
+
+  /// 水平精度，单位 m
+  double? horizontalAccuracy;
+
+  /// 垂直精度（海拔精度），单位 m。仅 iOS 有值，Android 为 null。
+  double? verticalAccuracy;
+
+  /// 速度，单位 m/s
   double? speed;
+
+  /// 方向/朝向，单位度（0～360），仅 GPS 时可能有效
+  double? bearing;
+
   /// 时间（毫秒时间戳）
   int? time;
 
@@ -25,5 +34,8 @@ class Location {
 
   @override
   String toString() =>
-      'Location(code: $code, lat: $latitude, lon: $longitude, accuracy: $accuracy, time: $time)';
+      'Location(code: $code, latitude: $latitude, longitude: $longitude, altitude: $altitude, '
+      'horizontalAccuracy: $horizontalAccuracy, verticalAccuracy: $verticalAccuracy, '
+      'speed: $speed, bearing: $bearing, time: $time, '
+      'sourceProvider: $sourceProvider, locationSource: $locationSource)';
 }

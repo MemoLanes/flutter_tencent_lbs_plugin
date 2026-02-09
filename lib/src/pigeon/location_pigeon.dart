@@ -325,6 +325,8 @@ class LocationData {
     this.longitude,
     this.altitude,
     this.accuracy,
+    this.horizontalAccuracy,
+    this.verticalAccuracy,
     this.speed,
     this.bearing,
     this.address,
@@ -347,13 +349,19 @@ class LocationData {
   /// 海拔，单位 m。TencentLocation.getAltitude，仅当位置来自 GPS 时可能有效。
   double? altitude;
 
-  /// 精度，单位 m。TencentLocation.getAccuracy。文档：GPS 约 20 米以内，WiFi 30-180 米，基站 150-800 米。
+  /// 精度，单位 m（水平精度）。TencentLocation.getAccuracy / CLLocation.horizontalAccuracy。
   double? accuracy;
+
+  /// 水平精度，单位 m。与 accuracy 同源，语义明确。
+  double? horizontalAccuracy;
+
+  /// 垂直精度（海拔精度），单位 m。仅 iOS CLLocation.verticalAccuracy 有值，Android 为 null。
+  double? verticalAccuracy;
 
   /// 移动速度，单位 m/s。TencentLocation.getSpeed，仅当位置来自 GPS 时可能有效。
   double? speed;
 
-  /// 方向，单位度。TencentLocation.getBearing，仅当位置来自 GPS 时可能有效。
+  /// 方向/朝向，单位度（0～360）。TencentLocation.getBearing / CLLocation.course，仅当位置来自 GPS 时可能有效。
   double? bearing;
 
   /// 位置地址。TencentLocation.getAddress，仅当 request level 为 NAME 或 ADMIN_AREA 时非 null。
@@ -381,6 +389,8 @@ class LocationData {
       longitude,
       altitude,
       accuracy,
+      horizontalAccuracy,
+      verticalAccuracy,
       speed,
       bearing,
       address,
@@ -400,14 +410,16 @@ class LocationData {
       longitude: result[2] as double?,
       altitude: result[3] as double?,
       accuracy: result[4] as double?,
-      speed: result[5] as double?,
-      bearing: result[6] as double?,
-      address: result[7] as String?,
-      name: result[8] as String?,
-      timeIso: result[9] as String?,
-      timeMs: result[10] as int?,
-      sourceProvider: result[11] as String?,
-      locationSource: result[12] as int?,
+      horizontalAccuracy: result[5] as double?,
+      verticalAccuracy: result[6] as double?,
+      speed: result[7] as double?,
+      bearing: result[8] as double?,
+      address: result[9] as String?,
+      name: result[10] as String?,
+      timeIso: result[11] as String?,
+      timeMs: result[12] as int?,
+      sourceProvider: result[13] as String?,
+      locationSource: result[14] as int?,
     );
   }
 }

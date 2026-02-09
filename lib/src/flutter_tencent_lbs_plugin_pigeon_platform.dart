@@ -182,8 +182,10 @@ class FlutterTencentLBSPluginPigeonPlatform extends FlutterTencentLBSPluginPlatf
     loc.latitude = data.latitude;
     loc.longitude = data.longitude;
     loc.altitude = data.altitude;
-    loc.accuracy = data.accuracy;
+    loc.horizontalAccuracy = data.horizontalAccuracy ?? data.accuracy;
+    loc.verticalAccuracy = data.verticalAccuracy;
     loc.speed = data.speed;
+    loc.bearing = data.bearing;
     loc.time = data.timeMs;
     loc.sourceProvider = data.sourceProvider;
     loc.locationSource = data.locationSource;

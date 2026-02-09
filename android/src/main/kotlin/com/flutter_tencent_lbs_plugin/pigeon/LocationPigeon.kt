@@ -293,11 +293,15 @@ data class LocationData (
   val longitude: Double? = null,
   /** 海拔，单位 m。TencentLocation.getAltitude，仅当位置来自 GPS 时可能有效。 */
   val altitude: Double? = null,
-  /** 精度，单位 m。TencentLocation.getAccuracy。文档：GPS 约 20 米以内，WiFi 30-180 米，基站 150-800 米。 */
+  /** 精度，单位 m（水平精度）。TencentLocation.getAccuracy / CLLocation.horizontalAccuracy。 */
   val accuracy: Double? = null,
+  /** 水平精度，单位 m。与 accuracy 同源，语义明确。 */
+  val horizontalAccuracy: Double? = null,
+  /** 垂直精度（海拔精度），单位 m。仅 iOS CLLocation.verticalAccuracy 有值，Android 为 null。 */
+  val verticalAccuracy: Double? = null,
   /** 移动速度，单位 m/s。TencentLocation.getSpeed，仅当位置来自 GPS 时可能有效。 */
   val speed: Double? = null,
-  /** 方向，单位度。TencentLocation.getBearing，仅当位置来自 GPS 时可能有效。 */
+  /** 方向/朝向，单位度（0～360）。TencentLocation.getBearing / CLLocation.course，仅当位置来自 GPS 时可能有效。 */
   val bearing: Double? = null,
   /** 位置地址。TencentLocation.getAddress，仅当 request level 为 NAME 或 ADMIN_AREA 时非 null。 */
   val address: String? = null,
@@ -320,15 +324,17 @@ data class LocationData (
       val longitude = pigeonVar_list[2] as Double?
       val altitude = pigeonVar_list[3] as Double?
       val accuracy = pigeonVar_list[4] as Double?
-      val speed = pigeonVar_list[5] as Double?
-      val bearing = pigeonVar_list[6] as Double?
-      val address = pigeonVar_list[7] as String?
-      val name = pigeonVar_list[8] as String?
-      val timeIso = pigeonVar_list[9] as String?
-      val timeMs = pigeonVar_list[10] as Long?
-      val sourceProvider = pigeonVar_list[11] as String?
-      val locationSource = pigeonVar_list[12] as Long?
-      return LocationData(code, latitude, longitude, altitude, accuracy, speed, bearing, address, name, timeIso, timeMs, sourceProvider, locationSource)
+      val horizontalAccuracy = pigeonVar_list[5] as Double?
+      val verticalAccuracy = pigeonVar_list[6] as Double?
+      val speed = pigeonVar_list[7] as Double?
+      val bearing = pigeonVar_list[8] as Double?
+      val address = pigeonVar_list[9] as String?
+      val name = pigeonVar_list[10] as String?
+      val timeIso = pigeonVar_list[11] as String?
+      val timeMs = pigeonVar_list[12] as Long?
+      val sourceProvider = pigeonVar_list[13] as String?
+      val locationSource = pigeonVar_list[14] as Long?
+      return LocationData(code, latitude, longitude, altitude, accuracy, horizontalAccuracy, verticalAccuracy, speed, bearing, address, name, timeIso, timeMs, sourceProvider, locationSource)
     }
   }
   fun toList(): List<Any?> {
@@ -338,6 +344,8 @@ data class LocationData (
       longitude,
       altitude,
       accuracy,
+      horizontalAccuracy,
+      verticalAccuracy,
       speed,
       bearing,
       address,

@@ -341,11 +341,15 @@ struct LocationData {
   var longitude: Double? = nil
   /// 海拔，单位 m。TencentLocation.getAltitude，仅当位置来自 GPS 时可能有效。
   var altitude: Double? = nil
-  /// 精度，单位 m。TencentLocation.getAccuracy。文档：GPS 约 20 米以内，WiFi 30-180 米，基站 150-800 米。
+  /// 精度，单位 m（水平精度）。TencentLocation.getAccuracy / CLLocation.horizontalAccuracy。
   var accuracy: Double? = nil
+  /// 水平精度，单位 m。与 accuracy 同源，语义明确。
+  var horizontalAccuracy: Double? = nil
+  /// 垂直精度（海拔精度），单位 m。仅 iOS CLLocation.verticalAccuracy 有值，Android 为 null。
+  var verticalAccuracy: Double? = nil
   /// 移动速度，单位 m/s。TencentLocation.getSpeed，仅当位置来自 GPS 时可能有效。
   var speed: Double? = nil
-  /// 方向，单位度。TencentLocation.getBearing，仅当位置来自 GPS 时可能有效。
+  /// 方向/朝向，单位度（0～360）。TencentLocation.getBearing / CLLocation.course，仅当位置来自 GPS 时可能有效。
   var bearing: Double? = nil
   /// 位置地址。TencentLocation.getAddress，仅当 request level 为 NAME 或 ADMIN_AREA 时非 null。
   var address: String? = nil
@@ -368,14 +372,16 @@ struct LocationData {
     let longitude: Double? = nilOrValue(pigeonVar_list[2])
     let altitude: Double? = nilOrValue(pigeonVar_list[3])
     let accuracy: Double? = nilOrValue(pigeonVar_list[4])
-    let speed: Double? = nilOrValue(pigeonVar_list[5])
-    let bearing: Double? = nilOrValue(pigeonVar_list[6])
-    let address: String? = nilOrValue(pigeonVar_list[7])
-    let name: String? = nilOrValue(pigeonVar_list[8])
-    let timeIso: String? = nilOrValue(pigeonVar_list[9])
-    let timeMs: Int64? = nilOrValue(pigeonVar_list[10])
-    let sourceProvider: String? = nilOrValue(pigeonVar_list[11])
-    let locationSource: Int64? = nilOrValue(pigeonVar_list[12])
+    let horizontalAccuracy: Double? = nilOrValue(pigeonVar_list[5])
+    let verticalAccuracy: Double? = nilOrValue(pigeonVar_list[6])
+    let speed: Double? = nilOrValue(pigeonVar_list[7])
+    let bearing: Double? = nilOrValue(pigeonVar_list[8])
+    let address: String? = nilOrValue(pigeonVar_list[9])
+    let name: String? = nilOrValue(pigeonVar_list[10])
+    let timeIso: String? = nilOrValue(pigeonVar_list[11])
+    let timeMs: Int64? = nilOrValue(pigeonVar_list[12])
+    let sourceProvider: String? = nilOrValue(pigeonVar_list[13])
+    let locationSource: Int64? = nilOrValue(pigeonVar_list[14])
 
     return LocationData(
       code: code,
@@ -383,6 +389,8 @@ struct LocationData {
       longitude: longitude,
       altitude: altitude,
       accuracy: accuracy,
+      horizontalAccuracy: horizontalAccuracy,
+      verticalAccuracy: verticalAccuracy,
       speed: speed,
       bearing: bearing,
       address: address,
@@ -400,6 +408,8 @@ struct LocationData {
       longitude,
       altitude,
       accuracy,
+      horizontalAccuracy,
+      verticalAccuracy,
       speed,
       bearing,
       address,
