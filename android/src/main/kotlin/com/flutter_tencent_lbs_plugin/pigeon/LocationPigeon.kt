@@ -50,24 +50,28 @@ class FlutterError (
 ) : Throwable()
 
 /**
- * 初始化参数（对应 init 时设置，与 SDK 文档一致）
+ * 初始化参数。对应 Android TencentLocationManagerOptions + TencentLocationManager + TencentLocationRequest 的初始设置；iOS TencentLBSLocationManager 的 apiKey、coordinateType、requestLevel 等。
  *
  * Generated class from Pigeon that represents data sent in messages.
  */
 data class InitOptions (
+  /** 腾讯开放平台申请的 Key。Android: TencentLocationManagerOptions.setKey；iOS: apiKey。 */
   val apiKey: String,
-  /** 0=GCJ02, 1=WGS84 */
+  /** 坐标系类型。0=GCJ02（火星坐标，大陆返回 GCJ02 大陆外返回 WGS84）；1=WGS84（地球坐标，均返回 WGS84）。Android: TencentLocationManager.coordinateType；iOS: TencentLBSLocationCoordinateType。 */
   val coordinateType: Long? = null,
+  /** 是否允许 Mock 定位。Android: TencentLocationManager.setMockEnable。 */
   val mockEnable: Boolean? = null,
-  /** 0/1/3/4 对应 GEO/NAME/ADMIN_AREA/POI */
+  /** 定位结果信息级别。不同 level 结果信息完整程度不同，信息越多消耗流量越多。Android: TencentLocationRequest.setRequestLevel。0=仅经纬度，1=经纬度+位置名称+地址，3=经纬度+行政区划+地址+名称，4=经纬度+行政区划+附近POI。 */
   val requestLevel: Long? = null,
-  /** Android: 10/11/12；iOS 忽略 */
+  /** 定位模式（仅 Android）。TencentLocationRequest.setLocMode。10=高精度(网络+卫星)，11=仅网络(不启GPS、省电、精度降低)，12=仅GPS(室外约3-10米，首次较慢耗电高，超时8s无GPS则返回网络)。iOS 无此参数，传参在 iOS 端忽略。 */
   val locMode: Long? = null,
+  /** 是否允许使用 GPS（仅 Android）。TencentLocationRequest.setAllowGPS，默认允许。允许时室外可提升精度约3-10米，首次较慢耗电较高。仅对高精度定位模式生效。 */
   val allowGps: Boolean? = null,
+  /** 是否启动室内定位（仅 Android）。TencentLocationRequest.setIndoorLocationMode。 */
   val indoorLocationMode: Boolean? = null,
-  /** 首次是否等待卫星定位结果 */
+  /** 首次定位是否等待卫星定位结果（仅 Android）。TencentLocationRequest.setGpsFirst，默认 false。为 true 时首次定位会等待卫星结果，超时后返回网络定位结果。仅高精度模式生效。 */
   val gpsFirst: Boolean? = null,
-  /** 卫星定位优先时的超时时间 ms，最多 60000 */
+  /** 卫星定位优先时，等待卫星定位结果的超时时间（仅 Android）。TencentLocationRequest.setGpsFirstTimeOut，单位 ms，最多 60s。 */
   val gpsFirstTimeOutMs: Long? = null
 )
  {
@@ -101,21 +105,26 @@ data class InitOptions (
 }
 
 /**
- * 连续定位请求参数（与 TencentLocationRequest 对应）
+ * 连续定位请求参数。对应 Android TencentLocationRequest；iOS 连续定位时的 interval、requestLevel 等。
  *
  * Generated class from Pigeon that represents data sent in messages.
  */
 data class ContinuousLocationRequest (
-  /** 定位周期/回调周期，单位 ms。>0 时按周期回调；0 仅在有新结果时回调。建议 5000–10000 */
+  /** 定位周期（位置监听器回调周期），单位 ms。Android: TencentLocationRequest.setInterval。大于 0 时按周期定时回调；等于 0 时仅当有新的定位结果时回调。文档建议 5000-10000ms，不建议 1000ms 以下，且不得小于 1000ms。 */
   val intervalMs: Long,
-  /** 与 InitOptions 一致，不传则用 init 时的值 */
+  /** 定位结果信息级别，同 InitOptions.requestLevel。不传则使用 init 时的值。 */
   val requestLevel: Long? = null,
+  /** 定位模式（仅 Android），同 InitOptions.locMode。 */
   val locMode: Long? = null,
+  /** 是否允许使用 GPS（仅 Android），同 InitOptions.allowGps。 */
   val allowGps: Boolean? = null,
+  /** 是否允许使用缓存（仅 Android）。TencentLocationRequest.setAllowCache。允许时用户移动范围较小时可减少网络请求、节省电量和流量；长时间连续定位建议允许，单次定位建议不使用。 */
   val allowCache: Boolean? = null,
+  /** 首次是否等待卫星结果（仅 Android），同 InitOptions.gpsFirst。 */
   val gpsFirst: Boolean? = null,
+  /** 卫星优先超时时间 ms（仅 Android），同 InitOptions.gpsFirstTimeOutMs。 */
   val gpsFirstTimeOutMs: Long? = null,
-  /** 是否后台定位（Android 前台通知等） */
+  /** 是否后台定位。为 true 时 Android 需配合前台通知（enableForegroundLocation）；iOS 需配置后台定位能力。 */
   val backgroundLocation: Boolean? = null
 )
  {
@@ -147,9 +156,7 @@ data class ContinuousLocationRequest (
 }
 
 /**
- * 连续定位过程中可更新的参数（仅传需要修改的字段）
- * Android: 间隔可通过 changeCallbackInterval 修改；其它需重新 requestLocationUpdates
- * iOS: 可动态改 locationCallbackInterval、requestLevel 等属性
+ * 连续定位过程中可更新的参数，仅传需要修改的字段。Android：间隔可通过 changeCallbackInterval 修改，其它需重新 requestLocationUpdates；iOS：可动态修改 locationCallbackInterval、requestLevel 等。
  *
  * Generated class from Pigeon that represents data sent in messages.
  */
@@ -189,20 +196,30 @@ data class LocationRequestUpdate (
 }
 
 /**
- * Android 前台定位通知配置
+ * Android 后台定位时的前台通知配置。Android 后台定位需前台服务并显示通知，通过 TencentLocationManager.enableForegroundLocation(notifId, notification) 绑定；id 为通知 ID，channelId/channelName 为通知渠道，notificationTitle/notificationText 为通知标题与内容。
  *
  * Generated class from Pigeon that represents data sent in messages.
  */
 data class AndroidNotificationOptions (
+  /** 前台定位通知 ID，用于 enableForegroundLocation(id, notification)。 */
   val id: Long,
+  /** 通知渠道 ID（Android NotificationChannel）。 */
   val channelId: String,
+  /** 通知渠道名称。 */
   val channelName: String,
+  /** 通知渠道描述（可选）。 */
   val channelDescription: String? = null,
+  /** 通知标题。 */
   val notificationTitle: String,
+  /** 通知内容（可选）。 */
   val notificationText: String? = null,
+  /** 是否振动。 */
   val enableVibration: Boolean? = null,
+  /** 是否播放声音。 */
   val playSound: Boolean? = null,
+  /** 是否显示时间。 */
   val showWhen: Boolean? = null,
+  /** 通知图标（可选）。Android 侧用 bitmapPath 或 resourceId 解析为 drawable 资源。 */
   val iconData: NotificationIconData? = null
 )
  {
@@ -237,7 +254,11 @@ data class AndroidNotificationOptions (
   }
 }
 
-/** Generated class from Pigeon that represents data sent in messages. */
+/**
+ * 通知图标数据，用于构建 Android 前台定位通知的小图标。bitmapPath 为本地路径；resourceId 为 Android drawable 资源 ID。
+ *
+ * Generated class from Pigeon that represents data sent in messages.
+ */
 data class NotificationIconData (
   val bitmapPath: String? = null,
   val resourceId: Long? = null
@@ -259,23 +280,37 @@ data class NotificationIconData (
 }
 
 /**
- * 定位结果（与 TencentLocation / TencentLBSLocation 对应）
+ * 定位结果。对应 Android TencentLocation 接口、iOS TencentLBSLocation 返回字段。
  *
  * Generated class from Pigeon that represents data sent in messages.
  */
 data class LocationData (
+  /** 错误码。Android TencentLocation：0=ERROR_OK 定位成功，1=ERROR_NETWORK 网络问题，2=ERROR_BAD_JSON GPS/WiFi/基站错误，4=ERROR_WGS84 无法进行坐标转换，404=ERROR_UNKNOWN 未知原因。 */
   val code: Long? = null,
+  /** 纬度。TencentLocation.getLatitude。 */
   val latitude: Double? = null,
+  /** 经度。TencentLocation.getLongitude。 */
   val longitude: Double? = null,
+  /** 海拔，单位 m。TencentLocation.getAltitude，仅当位置来自 GPS 时可能有效。 */
   val altitude: Double? = null,
+  /** 精度，单位 m。TencentLocation.getAccuracy。文档：GPS 约 20 米以内，WiFi 30-180 米，基站 150-800 米。 */
   val accuracy: Double? = null,
+  /** 移动速度，单位 m/s。TencentLocation.getSpeed，仅当位置来自 GPS 时可能有效。 */
   val speed: Double? = null,
+  /** 方向，单位度。TencentLocation.getBearing，仅当位置来自 GPS 时可能有效。 */
   val bearing: Double? = null,
+  /** 位置地址。TencentLocation.getAddress，仅当 request level 为 NAME 或 ADMIN_AREA 时非 null。 */
   val address: String? = null,
+  /** 位置名称。TencentLocation.getName，仅当 request level 为 NAME 或 ADMIN_AREA 时非 null。 */
   val name: String? = null,
+  /** 时间 ISO 字符串（可选，非 SDK 必返字段）。 */
   val timeIso: String? = null,
+  /** 当前位置生成时间，毫秒时间戳。TencentLocation.getTime。 */
   val timeMs: Long? = null,
-  val sourceProvider: String? = null
+  /** 位置细分来源（原生原始值）。Android: TencentLocation.getSourceProvider()；iOS 可为 null，以 locationSource 为准。 */
+  val sourceProvider: String? = null,
+  /** 定位来源（双端统一）。-1=未知，0=GPS，1=网络，2=模拟，3=外设GPS，4=外设网络。见 LocationSource。 */
+  val locationSource: Long? = null
 )
  {
   companion object {
@@ -292,7 +327,8 @@ data class LocationData (
       val timeIso = pigeonVar_list[9] as String?
       val timeMs = pigeonVar_list[10] as Long?
       val sourceProvider = pigeonVar_list[11] as String?
-      return LocationData(code, latitude, longitude, altitude, accuracy, speed, bearing, address, name, timeIso, timeMs, sourceProvider)
+      val locationSource = pigeonVar_list[12] as Long?
+      return LocationData(code, latitude, longitude, altitude, accuracy, speed, bearing, address, name, timeIso, timeMs, sourceProvider, locationSource)
     }
   }
   fun toList(): List<Any?> {
@@ -309,12 +345,13 @@ data class LocationData (
       timeIso,
       timeMs,
       sourceProvider,
+      locationSource,
     )
   }
 }
 
 /**
- * 状态回调（仅 Android onStatusUpdate）
+ * 状态回调数据（仅 Android）。对应 TencentLocationListener.onStatusUpdate(name, status, desc)。使用 status 前请先按 name 区分设备。name 为设备名如 "GPS"、"WIFI"、"CELL"；status 为状态码，参见 SDK 状态码对照表。
  *
  * Generated class from Pigeon that represents data sent in messages.
  */
@@ -415,13 +452,17 @@ private open class LocationPigeonPigeonCodec : StandardMessageCodec() {
 
 /** Generated interface from Pigeon that represents a handler of messages from Flutter. */
 interface TencentLBSHostApi {
-  /** 对应 SDK 初始化（方法名避免 Swift 保留字 init） */
+  /** SDK 初始化（方法名避免 Swift 保留字 init）。Android: TencentLocationManagerOptions.setKey + TencentLocationManager 实例及 Request 配置；iOS: TencentLBSLocationManager 配置。 */
   fun configure(options: InitOptions): Boolean
+  /** 设置用户是否同意隐私政策，调用其他接口前必须调用。对应 SDK setUserAgreePrivacy。 */
   fun setUserAgreePrivacy(agree: Boolean)
+  /** 单次定位。Android: requestSingleFreshLocation；iOS: requestLocation。 */
   fun requestLocationOnce()
+  /** 发起连续定位。Android: requestLocationUpdates；iOS: startUpdatingLocation。androidNotificationOptions 仅 Android 后台定位时用于构建前台通知。 */
   fun startLocationUpdates(request: ContinuousLocationRequest, androidNotificationOptions: AndroidNotificationOptions?)
-  /** 连续定位开启后可调用，更新部分参数（如超时时间、定位间隔等） */
+  /** 连续定位开启后可调用，更新部分参数（如定位间隔、requestLevel 等）。Android 间隔可通过 changeCallbackInterval 修改。 */
   fun updateLocationRequest(update: LocationRequestUpdate?)
+  /** 停止连续定位。Android: removeUpdates；iOS: stopUpdatingLocation。 */
   fun stopLocationUpdates()
 
   companion object {

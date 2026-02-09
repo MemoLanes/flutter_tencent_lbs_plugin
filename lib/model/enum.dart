@@ -41,3 +41,27 @@ class TencentLBSLocMode {
   /// 仅 GPS：室外精度约 3–10 米，无 GPS 时超时后回退网络（默认 8s）
   static const int ONLY_GPS_MODE = 12;
 }
+
+/// 定位来源（双端统一）
+/// iOS: TencentLBSLocationProvider；Android: TencentLocation.getSourceProvider() 映射到此
+/// 参考：https://lbs.qq.com/mobile/iosLocationSDK/iosGeoGuide/geoCreate#3
+///       https://mapapi.qq.com/sdk/locationSDK/Android/doc/com/tencent/map/geolocation/TencentLocation.html
+class LocationSource {
+  /// 来源未知
+  static const int Unknown = -1;
+
+  /// 手机 GPS / 卫星（Android: GPS_PROVIDER、BEIDOU_PROVIDER）
+  static const int Gps = 0;
+
+  /// 手机网络（Android: NETWORK_PROVIDER、WIFI_PROVIDER、CELL_PROVIDER、COARSE_PROVIDER、FUSED_PROVIDER）
+  static const int Network = 1;
+
+  /// 模拟/作弊定位（Android: FAKE）
+  static const int Simulated = 2;
+
+  /// 外设 GPS
+  static const int AccessoryGps = 3;
+
+  /// 外设网络
+  static const int AccessoryNetwork = 4;
+}

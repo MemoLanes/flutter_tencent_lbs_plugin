@@ -150,6 +150,19 @@ final class TencentLBSHostApiImpl: NSObject, TencentLBSHostApi, TencentLBSLocati
 
     private func sendLocationToFlutter(_ location: TencentLBSLocation) {
         let cl = location.location
+        let provider = location.locationProvider
+        let unifiedSource = Int64(provider.rawValue)
+        let sourceProviderString: String? = {
+            switch provider {
+            case .GPS: return "gps"
+            case .netWork: return "network"
+            case .simulated: return "simulated"
+            case .accessoryGPS: return "accessory_gps"
+            case .accessoryNetwork: return "accessory_network"
+            case .unkown: return nil
+            @unknown default: return nil
+            }
+        }()
         let data = LocationData(
             code: 0,
             latitude: cl.coordinate.latitude,
@@ -162,7 +175,8 @@ final class TencentLBSHostApiImpl: NSObject, TencentLBSHostApi, TencentLBSLocati
             name: location.name,
             timeIso: nil,
             timeMs: Int64(cl.timestamp.timeIntervalSince1970 * 1000),
-            sourceProvider: nil
+            sourceProvider: sourceProviderString,
+            locationSource: unifiedSource
         )
         flutterApi?.onLocation(location: data) { _ in }
     }

@@ -199,8 +199,11 @@ class LocationData {
   /// 当前位置生成时间，毫秒时间戳。TencentLocation.getTime。
   int? timeMs;
 
-  /// 位置细分来源。TencentLocation.getSourceProvider，如 GPS_PROVIDER、NETWORK_PROVIDER、WIFI_PROVIDER、CELL_PROVIDER 等。
+  /// 位置细分来源（原生原始值）。Android: TencentLocation.getSourceProvider()；iOS 可为 null，以 locationSource 为准。
   String? sourceProvider;
+
+  /// 定位来源（双端统一）。-1=未知，0=GPS，1=网络，2=模拟，3=外设GPS，4=外设网络。见 LocationSource。
+  int? locationSource;
 
   LocationData({
     this.code,
@@ -215,6 +218,7 @@ class LocationData {
     this.timeIso,
     this.timeMs,
     this.sourceProvider,
+    this.locationSource,
   });
 }
 

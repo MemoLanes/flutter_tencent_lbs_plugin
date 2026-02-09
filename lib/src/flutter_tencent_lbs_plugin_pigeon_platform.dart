@@ -186,6 +186,7 @@ class FlutterTencentLBSPluginPigeonPlatform extends FlutterTencentLBSPluginPlatf
     loc.speed = data.speed;
     loc.time = data.timeMs;
     loc.sourceProvider = data.sourceProvider;
+    loc.locationSource = data.locationSource;
     return loc;
   }
 }

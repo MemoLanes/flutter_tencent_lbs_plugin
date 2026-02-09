@@ -175,11 +175,11 @@ void stop();
 
 ## 数据类型（导出自插件）
 
-- **Location**：定位结果。字段：`latitude`, `longitude`, `altitude`, `accuracy`, `speed`, `time`, `sourceProvider`, `code`（0 为成功）。
+- **Location**：定位结果。字段：`latitude`, `longitude`, `altitude`, `accuracy`, `speed`, `time`, `sourceProvider`（原生原始值）, `locationSource`（双端统一的定位来源码，见 `LocationSource`）, `code`（0 为成功）。
 - **LocationStatus**：状态回调数据（Android）。`name`, `status`。
 - **AndroidNotificationOptions**：Android 前台通知配置。`id`, `channelId`, `channelName`, `notificationTitle`, `notificationText`, `channelDescription`, `enableVibration`, `playSound`, `showWhen`, `iconData`（可选）。
 - **NotificationIconData**：通知图标。`resType`（ResourceType.drawable/mipmap）, `resPrefix`（ResourcePrefix.ic/img）, `name`, `backgroundColor`（可选）。
-- **枚举类**：`TencentLBSLocationCoordinateType`, `TencentLBSRequestLevel`, `TencentLBSLocMode`（见上文）。
+- **枚举类**：`TencentLBSLocationCoordinateType`, `TencentLBSRequestLevel`, `TencentLBSLocMode`, **`LocationSource`**（定位来源统一常量：`Unknown=-1`, `Gps=0`, `Network=1`, `Simulated=2`, `AccessoryGps=3`, `AccessoryNetwork=4`，iOS 与 Android SDK 返回值已映射为此统一含义）。
 
 ---
 

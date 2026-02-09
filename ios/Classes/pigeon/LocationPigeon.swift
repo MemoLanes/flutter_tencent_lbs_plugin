@@ -68,23 +68,27 @@ private func nilOrValue<T>(_ value: Any?) -> T? {
   return value as! T?
 }
 
-/// 初始化参数（对应 init 时设置，与 SDK 文档一致）
+/// 初始化参数。对应 Android TencentLocationManagerOptions + TencentLocationManager + TencentLocationRequest 的初始设置；iOS TencentLBSLocationManager 的 apiKey、coordinateType、requestLevel 等。
 ///
 /// Generated class from Pigeon that represents data sent in messages.
 struct InitOptions {
+  /// 腾讯开放平台申请的 Key。Android: TencentLocationManagerOptions.setKey；iOS: apiKey。
   var apiKey: String
-  /// 0=GCJ02, 1=WGS84
+  /// 坐标系类型。0=GCJ02（火星坐标，大陆返回 GCJ02 大陆外返回 WGS84）；1=WGS84（地球坐标，均返回 WGS84）。Android: TencentLocationManager.coordinateType；iOS: TencentLBSLocationCoordinateType。
   var coordinateType: Int64? = nil
+  /// 是否允许 Mock 定位。Android: TencentLocationManager.setMockEnable。
   var mockEnable: Bool? = nil
-  /// 0/1/3/4 对应 GEO/NAME/ADMIN_AREA/POI
+  /// 定位结果信息级别。不同 level 结果信息完整程度不同，信息越多消耗流量越多。Android: TencentLocationRequest.setRequestLevel。0=仅经纬度，1=经纬度+位置名称+地址，3=经纬度+行政区划+地址+名称，4=经纬度+行政区划+附近POI。
   var requestLevel: Int64? = nil
-  /// Android: 10/11/12；iOS 忽略
+  /// 定位模式（仅 Android）。TencentLocationRequest.setLocMode。10=高精度(网络+卫星)，11=仅网络(不启GPS、省电、精度降低)，12=仅GPS(室外约3-10米，首次较慢耗电高，超时8s无GPS则返回网络)。iOS 无此参数，传参在 iOS 端忽略。
   var locMode: Int64? = nil
+  /// 是否允许使用 GPS（仅 Android）。TencentLocationRequest.setAllowGPS，默认允许。允许时室外可提升精度约3-10米，首次较慢耗电较高。仅对高精度定位模式生效。
   var allowGps: Bool? = nil
+  /// 是否启动室内定位（仅 Android）。TencentLocationRequest.setIndoorLocationMode。
   var indoorLocationMode: Bool? = nil
-  /// 首次是否等待卫星定位结果
+  /// 首次定位是否等待卫星定位结果（仅 Android）。TencentLocationRequest.setGpsFirst，默认 false。为 true 时首次定位会等待卫星结果，超时后返回网络定位结果。仅高精度模式生效。
   var gpsFirst: Bool? = nil
-  /// 卫星定位优先时的超时时间 ms，最多 60000
+  /// 卫星定位优先时，等待卫星定位结果的超时时间（仅 Android）。TencentLocationRequest.setGpsFirstTimeOut，单位 ms，最多 60s。
   var gpsFirstTimeOutMs: Int64? = nil
 
 
@@ -127,20 +131,25 @@ struct InitOptions {
   }
 }
 
-/// 连续定位请求参数（与 TencentLocationRequest 对应）
+/// 连续定位请求参数。对应 Android TencentLocationRequest；iOS 连续定位时的 interval、requestLevel 等。
 ///
 /// Generated class from Pigeon that represents data sent in messages.
 struct ContinuousLocationRequest {
-  /// 定位周期/回调周期，单位 ms。>0 时按周期回调；0 仅在有新结果时回调。建议 5000–10000
+  /// 定位周期（位置监听器回调周期），单位 ms。Android: TencentLocationRequest.setInterval。大于 0 时按周期定时回调；等于 0 时仅当有新的定位结果时回调。文档建议 5000-10000ms，不建议 1000ms 以下，且不得小于 1000ms。
   var intervalMs: Int64
-  /// 与 InitOptions 一致，不传则用 init 时的值
+  /// 定位结果信息级别，同 InitOptions.requestLevel。不传则使用 init 时的值。
   var requestLevel: Int64? = nil
+  /// 定位模式（仅 Android），同 InitOptions.locMode。
   var locMode: Int64? = nil
+  /// 是否允许使用 GPS（仅 Android），同 InitOptions.allowGps。
   var allowGps: Bool? = nil
+  /// 是否允许使用缓存（仅 Android）。TencentLocationRequest.setAllowCache。允许时用户移动范围较小时可减少网络请求、节省电量和流量；长时间连续定位建议允许，单次定位建议不使用。
   var allowCache: Bool? = nil
+  /// 首次是否等待卫星结果（仅 Android），同 InitOptions.gpsFirst。
   var gpsFirst: Bool? = nil
+  /// 卫星优先超时时间 ms（仅 Android），同 InitOptions.gpsFirstTimeOutMs。
   var gpsFirstTimeOutMs: Int64? = nil
-  /// 是否后台定位（Android 前台通知等）
+  /// 是否后台定位。为 true 时 Android 需配合前台通知（enableForegroundLocation）；iOS 需配置后台定位能力。
   var backgroundLocation: Bool? = nil
 
 
@@ -180,9 +189,7 @@ struct ContinuousLocationRequest {
   }
 }
 
-/// 连续定位过程中可更新的参数（仅传需要修改的字段）
-/// Android: 间隔可通过 changeCallbackInterval 修改；其它需重新 requestLocationUpdates
-/// iOS: 可动态改 locationCallbackInterval、requestLevel 等属性
+/// 连续定位过程中可更新的参数，仅传需要修改的字段。Android：间隔可通过 changeCallbackInterval 修改，其它需重新 requestLocationUpdates；iOS：可动态修改 locationCallbackInterval、requestLevel 等。
 ///
 /// Generated class from Pigeon that represents data sent in messages.
 struct LocationRequestUpdate {
@@ -228,19 +235,29 @@ struct LocationRequestUpdate {
   }
 }
 
-/// Android 前台定位通知配置
+/// Android 后台定位时的前台通知配置。Android 后台定位需前台服务并显示通知，通过 TencentLocationManager.enableForegroundLocation(notifId, notification) 绑定；id 为通知 ID，channelId/channelName 为通知渠道，notificationTitle/notificationText 为通知标题与内容。
 ///
 /// Generated class from Pigeon that represents data sent in messages.
 struct AndroidNotificationOptions {
+  /// 前台定位通知 ID，用于 enableForegroundLocation(id, notification)。
   var id: Int64
+  /// 通知渠道 ID（Android NotificationChannel）。
   var channelId: String
+  /// 通知渠道名称。
   var channelName: String
+  /// 通知渠道描述（可选）。
   var channelDescription: String? = nil
+  /// 通知标题。
   var notificationTitle: String
+  /// 通知内容（可选）。
   var notificationText: String? = nil
+  /// 是否振动。
   var enableVibration: Bool? = nil
+  /// 是否播放声音。
   var playSound: Bool? = nil
+  /// 是否显示时间。
   var showWhen: Bool? = nil
+  /// 通知图标（可选）。Android 侧用 bitmapPath 或 resourceId 解析为 drawable 资源。
   var iconData: NotificationIconData? = nil
 
 
@@ -286,6 +303,8 @@ struct AndroidNotificationOptions {
   }
 }
 
+/// 通知图标数据，用于构建 Android 前台定位通知的小图标。bitmapPath 为本地路径；resourceId 为 Android drawable 资源 ID。
+///
 /// Generated class from Pigeon that represents data sent in messages.
 struct NotificationIconData {
   var bitmapPath: String? = nil
@@ -310,22 +329,36 @@ struct NotificationIconData {
   }
 }
 
-/// 定位结果（与 TencentLocation / TencentLBSLocation 对应）
+/// 定位结果。对应 Android TencentLocation 接口、iOS TencentLBSLocation 返回字段。
 ///
 /// Generated class from Pigeon that represents data sent in messages.
 struct LocationData {
+  /// 错误码。Android TencentLocation：0=ERROR_OK 定位成功，1=ERROR_NETWORK 网络问题，2=ERROR_BAD_JSON GPS/WiFi/基站错误，4=ERROR_WGS84 无法进行坐标转换，404=ERROR_UNKNOWN 未知原因。
   var code: Int64? = nil
+  /// 纬度。TencentLocation.getLatitude。
   var latitude: Double? = nil
+  /// 经度。TencentLocation.getLongitude。
   var longitude: Double? = nil
+  /// 海拔，单位 m。TencentLocation.getAltitude，仅当位置来自 GPS 时可能有效。
   var altitude: Double? = nil
+  /// 精度，单位 m。TencentLocation.getAccuracy。文档：GPS 约 20 米以内，WiFi 30-180 米，基站 150-800 米。
   var accuracy: Double? = nil
+  /// 移动速度，单位 m/s。TencentLocation.getSpeed，仅当位置来自 GPS 时可能有效。
   var speed: Double? = nil
+  /// 方向，单位度。TencentLocation.getBearing，仅当位置来自 GPS 时可能有效。
   var bearing: Double? = nil
+  /// 位置地址。TencentLocation.getAddress，仅当 request level 为 NAME 或 ADMIN_AREA 时非 null。
   var address: String? = nil
+  /// 位置名称。TencentLocation.getName，仅当 request level 为 NAME 或 ADMIN_AREA 时非 null。
   var name: String? = nil
+  /// 时间 ISO 字符串（可选，非 SDK 必返字段）。
   var timeIso: String? = nil
+  /// 当前位置生成时间，毫秒时间戳。TencentLocation.getTime。
   var timeMs: Int64? = nil
+  /// 位置细分来源（原生原始值）。Android: TencentLocation.getSourceProvider()；iOS 可为 null，以 locationSource 为准。
   var sourceProvider: String? = nil
+  /// 定位来源（双端统一）。-1=未知，0=GPS，1=网络，2=模拟，3=外设GPS，4=外设网络。见 LocationSource。
+  var locationSource: Int64? = nil
 
 
   // swift-format-ignore: AlwaysUseLowerCamelCase
@@ -342,6 +375,7 @@ struct LocationData {
     let timeIso: String? = nilOrValue(pigeonVar_list[9])
     let timeMs: Int64? = nilOrValue(pigeonVar_list[10])
     let sourceProvider: String? = nilOrValue(pigeonVar_list[11])
+    let locationSource: Int64? = nilOrValue(pigeonVar_list[12])
 
     return LocationData(
       code: code,
@@ -355,7 +389,8 @@ struct LocationData {
       name: name,
       timeIso: timeIso,
       timeMs: timeMs,
-      sourceProvider: sourceProvider
+      sourceProvider: sourceProvider,
+      locationSource: locationSource
     )
   }
   func toList() -> [Any?] {
@@ -372,11 +407,12 @@ struct LocationData {
       timeIso,
       timeMs,
       sourceProvider,
+      locationSource,
     ]
   }
 }
 
-/// 状态回调（仅 Android onStatusUpdate）
+/// 状态回调数据（仅 Android）。对应 TencentLocationListener.onStatusUpdate(name, status, desc)。使用 status 前请先按 name 区分设备。name 为设备名如 "GPS"、"WIFI"、"CELL"；status 为状态码，参见 SDK 状态码对照表。
 ///
 /// Generated class from Pigeon that represents data sent in messages.
 struct LocationStatusData {
@@ -470,13 +506,17 @@ class LocationPigeonPigeonCodec: FlutterStandardMessageCodec, @unchecked Sendabl
 
 /// Generated protocol from Pigeon that represents a handler of messages from Flutter.
 protocol TencentLBSHostApi {
-  /// 对应 SDK 初始化（方法名避免 Swift 保留字 init）
+  /// SDK 初始化（方法名避免 Swift 保留字 init）。Android: TencentLocationManagerOptions.setKey + TencentLocationManager 实例及 Request 配置；iOS: TencentLBSLocationManager 配置。
   func configure(options: InitOptions) throws -> Bool
+  /// 设置用户是否同意隐私政策，调用其他接口前必须调用。对应 SDK setUserAgreePrivacy。
   func setUserAgreePrivacy(agree: Bool) throws
+  /// 单次定位。Android: requestSingleFreshLocation；iOS: requestLocation。
   func requestLocationOnce() throws
+  /// 发起连续定位。Android: requestLocationUpdates；iOS: startUpdatingLocation。androidNotificationOptions 仅 Android 后台定位时用于构建前台通知。
   func startLocationUpdates(request: ContinuousLocationRequest, androidNotificationOptions: AndroidNotificationOptions?) throws
-  /// 连续定位开启后可调用，更新部分参数（如超时时间、定位间隔等）
+  /// 连续定位开启后可调用，更新部分参数（如定位间隔、requestLevel 等）。Android 间隔可通过 changeCallbackInterval 修改。
   func updateLocationRequest(update: LocationRequestUpdate?) throws
+  /// 停止连续定位。Android: removeUpdates；iOS: stopUpdatingLocation。
   func stopLocationUpdates() throws
 }
 
@@ -486,7 +526,7 @@ class TencentLBSHostApiSetup {
   /// Sets up an instance of `TencentLBSHostApi` to handle messages through the `binaryMessenger`.
   static func setUp(binaryMessenger: FlutterBinaryMessenger, api: TencentLBSHostApi?, messageChannelSuffix: String = "") {
     let channelSuffix = messageChannelSuffix.count > 0 ? ".\(messageChannelSuffix)" : ""
-    /// 对应 SDK 初始化（方法名避免 Swift 保留字 init）
+    /// SDK 初始化（方法名避免 Swift 保留字 init）。Android: TencentLocationManagerOptions.setKey + TencentLocationManager 实例及 Request 配置；iOS: TencentLBSLocationManager 配置。
     let configureChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.flutter_tencent_lbs_plugin.TencentLBSHostApi.configure\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {
       configureChannel.setMessageHandler { message, reply in
@@ -502,6 +542,7 @@ class TencentLBSHostApiSetup {
     } else {
       configureChannel.setMessageHandler(nil)
     }
+    /// 设置用户是否同意隐私政策，调用其他接口前必须调用。对应 SDK setUserAgreePrivacy。
     let setUserAgreePrivacyChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.flutter_tencent_lbs_plugin.TencentLBSHostApi.setUserAgreePrivacy\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {
       setUserAgreePrivacyChannel.setMessageHandler { message, reply in
@@ -517,6 +558,7 @@ class TencentLBSHostApiSetup {
     } else {
       setUserAgreePrivacyChannel.setMessageHandler(nil)
     }
+    /// 单次定位。Android: requestSingleFreshLocation；iOS: requestLocation。
     let requestLocationOnceChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.flutter_tencent_lbs_plugin.TencentLBSHostApi.requestLocationOnce\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {
       requestLocationOnceChannel.setMessageHandler { _, reply in
@@ -530,6 +572,7 @@ class TencentLBSHostApiSetup {
     } else {
       requestLocationOnceChannel.setMessageHandler(nil)
     }
+    /// 发起连续定位。Android: requestLocationUpdates；iOS: startUpdatingLocation。androidNotificationOptions 仅 Android 后台定位时用于构建前台通知。
     let startLocationUpdatesChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.flutter_tencent_lbs_plugin.TencentLBSHostApi.startLocationUpdates\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {
       startLocationUpdatesChannel.setMessageHandler { message, reply in
@@ -546,7 +589,7 @@ class TencentLBSHostApiSetup {
     } else {
       startLocationUpdatesChannel.setMessageHandler(nil)
     }
-    /// 连续定位开启后可调用，更新部分参数（如超时时间、定位间隔等）
+    /// 连续定位开启后可调用，更新部分参数（如定位间隔、requestLevel 等）。Android 间隔可通过 changeCallbackInterval 修改。
     let updateLocationRequestChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.flutter_tencent_lbs_plugin.TencentLBSHostApi.updateLocationRequest\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {
       updateLocationRequestChannel.setMessageHandler { message, reply in
@@ -562,6 +605,7 @@ class TencentLBSHostApiSetup {
     } else {
       updateLocationRequestChannel.setMessageHandler(nil)
     }
+    /// 停止连续定位。Android: removeUpdates；iOS: stopUpdatingLocation。
     let stopLocationUpdatesChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.flutter_tencent_lbs_plugin.TencentLBSHostApi.stopLocationUpdates\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {
       stopLocationUpdatesChannel.setMessageHandler { _, reply in

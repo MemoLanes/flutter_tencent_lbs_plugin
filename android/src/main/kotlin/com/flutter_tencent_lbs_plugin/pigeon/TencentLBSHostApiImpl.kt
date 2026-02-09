@@ -123,6 +123,8 @@ class TencentLBSHostApiImpl(
 
     override fun onLocationChanged(location: TencentLocation?, error: Int, reason: String?) {
         if (error == TencentLocation.ERROR_OK && location != null) {
+            val rawProvider = location.sourceProvider
+            val unifiedSource = toUnifiedLocationSource(rawProvider)
             val data = LocationData(
                 code = error.toLong(),
                 latitude = location.latitude.toDouble(),
@@ -135,11 +137,31 @@ class TencentLBSHostApiImpl(
                 name = location.name,
                 timeIso = null,
                 timeMs = location.time,
-                sourceProvider = location.sourceProvider,
+                sourceProvider = rawProvider,
+                locationSource = unifiedSource,
             )
             flutterApi.onLocation(data) {}
         } else {
             flutterApi.onError(error.toLong(), reason ?: "定位失败") {}
+        }
+    }
+
+    /**
+     * 将 Android TencentLocation.getSourceProvider() 的字符串映射为与 iOS 统一的定位来源码。
+     * 统一约定：-1=未知，0=GPS，1=网络，2=模拟，3=外设GPS，4=外设网络。
+     */
+    private fun toUnifiedLocationSource(sourceProvider: String?): Long? {
+        if (sourceProvider.isNullOrEmpty()) return -1L
+        return when (sourceProvider) {
+            TencentLocation.GPS_PROVIDER,
+            TencentLocation.BEIDOU_PROVIDER -> 0L  // 卫星/GPS
+            TencentLocation.NETWORK_PROVIDER,
+            TencentLocation.WIFI_PROVIDER,
+            TencentLocation.CELL_PROVIDER,
+            TencentLocation.COARSE_PROVIDER,
+            TencentLocation.FUSED_PROVIDER -> 1L  // 网络
+            TencentLocation.FAKE -> 2L            // 模拟/作弊
+            else -> -1L
         }
     }
 
