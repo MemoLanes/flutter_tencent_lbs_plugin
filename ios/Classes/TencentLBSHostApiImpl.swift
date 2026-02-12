@@ -17,7 +17,8 @@ final class TencentLBSHostApiImpl: NSObject, TencentLBSHostApi, TencentLBSLocati
         let manager = TencentLBSLocationManager()
         manager.delegate = self
         manager.apiKey = options.apiKey
-        manager.enableAntiMockLocation = options.mockEnable ?? false
+        // enableAntiMockLocation：开启反作弊检查。mockEnable=true 表示允许 Mock，故应关闭反作弊。
+        manager.enableAntiMockLocation = !(options.mockEnable ?? false)
 
         if let ct = options.coordinateType {
             manager.coordinateType = ct == 0 ? .GCJ02 : .WGS84

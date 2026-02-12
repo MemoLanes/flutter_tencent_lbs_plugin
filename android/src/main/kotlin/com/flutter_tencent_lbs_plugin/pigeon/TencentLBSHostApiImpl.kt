@@ -63,6 +63,13 @@ class TencentLBSHostApiImpl(
         val manager = locationManager ?: return
         val req = tencentLocationRequest ?: return
         if (isListeningLocationUpdates) return
+        // 后台定位必须提供通知配置且 id > 0，否则无法启用前台服务
+        if (request.backgroundLocation == true) {
+            if (androidNotificationOptions == null || androidNotificationOptions.id.toInt() <= 0) {
+                flutterApi.onError(-1L, "后台定位需要 androidNotificationOptions 且 id > 0") {}
+                return
+            }
+        }
         isListeningLocationUpdates = true
 
         req.interval = request.intervalMs
@@ -177,13 +184,12 @@ class TencentLBSHostApiImpl(
             id = p.id.toInt(),
             channelId = p.channelId,
             channelName = p.channelName,
-            channelDescription = p.channelDescription,
             contentTitle = p.notificationTitle,
             contentText = p.notificationText ?: "",
+            channelDescription = p.channelDescription,
             enableVibration = p.enableVibration ?: false,
             playSound = p.playSound ?: false,
             showWhen = p.showWhen ?: false,
-            iconData = null,
         )
     }
 }

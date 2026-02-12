@@ -218,9 +218,7 @@ data class AndroidNotificationOptions (
   /** 是否播放声音。 */
   val playSound: Boolean? = null,
   /** 是否显示时间。 */
-  val showWhen: Boolean? = null,
-  /** 通知图标（可选）。Android 侧用 bitmapPath 或 resourceId 解析为 drawable 资源。 */
-  val iconData: NotificationIconData? = null
+  val showWhen: Boolean? = null
 )
  {
   companion object {
@@ -234,8 +232,7 @@ data class AndroidNotificationOptions (
       val enableVibration = pigeonVar_list[6] as Boolean?
       val playSound = pigeonVar_list[7] as Boolean?
       val showWhen = pigeonVar_list[8] as Boolean?
-      val iconData = pigeonVar_list[9] as NotificationIconData?
-      return AndroidNotificationOptions(id, channelId, channelName, channelDescription, notificationTitle, notificationText, enableVibration, playSound, showWhen, iconData)
+      return AndroidNotificationOptions(id, channelId, channelName, channelDescription, notificationTitle, notificationText, enableVibration, playSound, showWhen)
     }
   }
   fun toList(): List<Any?> {
@@ -249,32 +246,6 @@ data class AndroidNotificationOptions (
       enableVibration,
       playSound,
       showWhen,
-      iconData,
-    )
-  }
-}
-
-/**
- * 通知图标数据，用于构建 Android 前台定位通知的小图标。bitmapPath 为本地路径；resourceId 为 Android drawable 资源 ID。
- *
- * Generated class from Pigeon that represents data sent in messages.
- */
-data class NotificationIconData (
-  val bitmapPath: String? = null,
-  val resourceId: Long? = null
-)
- {
-  companion object {
-    fun fromList(pigeonVar_list: List<Any?>): NotificationIconData {
-      val bitmapPath = pigeonVar_list[0] as String?
-      val resourceId = pigeonVar_list[1] as Long?
-      return NotificationIconData(bitmapPath, resourceId)
-    }
-  }
-  fun toList(): List<Any?> {
-    return listOf(
-      bitmapPath,
-      resourceId,
     )
   }
 }
@@ -407,15 +378,10 @@ private open class LocationPigeonPigeonCodec : StandardMessageCodec() {
       }
       133.toByte() -> {
         return (readValue(buffer) as? List<Any?>)?.let {
-          NotificationIconData.fromList(it)
-        }
-      }
-      134.toByte() -> {
-        return (readValue(buffer) as? List<Any?>)?.let {
           LocationData.fromList(it)
         }
       }
-      135.toByte() -> {
+      134.toByte() -> {
         return (readValue(buffer) as? List<Any?>)?.let {
           LocationStatusData.fromList(it)
         }
@@ -441,16 +407,12 @@ private open class LocationPigeonPigeonCodec : StandardMessageCodec() {
         stream.write(132)
         writeValue(stream, value.toList())
       }
-      is NotificationIconData -> {
+      is LocationData -> {
         stream.write(133)
         writeValue(stream, value.toList())
       }
-      is LocationData -> {
-        stream.write(134)
-        writeValue(stream, value.toList())
-      }
       is LocationStatusData -> {
-        stream.write(135)
+        stream.write(134)
         writeValue(stream, value.toList())
       }
       else -> super.writeValue(stream, value)

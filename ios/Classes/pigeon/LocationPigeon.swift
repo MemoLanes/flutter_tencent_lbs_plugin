@@ -257,8 +257,6 @@ struct AndroidNotificationOptions {
   var playSound: Bool? = nil
   /// 是否显示时间。
   var showWhen: Bool? = nil
-  /// 通知图标（可选）。Android 侧用 bitmapPath 或 resourceId 解析为 drawable 资源。
-  var iconData: NotificationIconData? = nil
 
 
   // swift-format-ignore: AlwaysUseLowerCamelCase
@@ -272,7 +270,6 @@ struct AndroidNotificationOptions {
     let enableVibration: Bool? = nilOrValue(pigeonVar_list[6])
     let playSound: Bool? = nilOrValue(pigeonVar_list[7])
     let showWhen: Bool? = nilOrValue(pigeonVar_list[8])
-    let iconData: NotificationIconData? = nilOrValue(pigeonVar_list[9])
 
     return AndroidNotificationOptions(
       id: id,
@@ -283,8 +280,7 @@ struct AndroidNotificationOptions {
       notificationText: notificationText,
       enableVibration: enableVibration,
       playSound: playSound,
-      showWhen: showWhen,
-      iconData: iconData
+      showWhen: showWhen
     )
   }
   func toList() -> [Any?] {
@@ -298,33 +294,6 @@ struct AndroidNotificationOptions {
       enableVibration,
       playSound,
       showWhen,
-      iconData,
-    ]
-  }
-}
-
-/// 通知图标数据，用于构建 Android 前台定位通知的小图标。bitmapPath 为本地路径；resourceId 为 Android drawable 资源 ID。
-///
-/// Generated class from Pigeon that represents data sent in messages.
-struct NotificationIconData {
-  var bitmapPath: String? = nil
-  var resourceId: Int64? = nil
-
-
-  // swift-format-ignore: AlwaysUseLowerCamelCase
-  static func fromList(_ pigeonVar_list: [Any?]) -> NotificationIconData? {
-    let bitmapPath: String? = nilOrValue(pigeonVar_list[0])
-    let resourceId: Int64? = nilOrValue(pigeonVar_list[1])
-
-    return NotificationIconData(
-      bitmapPath: bitmapPath,
-      resourceId: resourceId
-    )
-  }
-  func toList() -> [Any?] {
-    return [
-      bitmapPath,
-      resourceId,
     ]
   }
 }
@@ -460,10 +429,8 @@ private class LocationPigeonPigeonCodecReader: FlutterStandardReader {
     case 132:
       return AndroidNotificationOptions.fromList(self.readValue() as! [Any?])
     case 133:
-      return NotificationIconData.fromList(self.readValue() as! [Any?])
-    case 134:
       return LocationData.fromList(self.readValue() as! [Any?])
-    case 135:
+    case 134:
       return LocationStatusData.fromList(self.readValue() as! [Any?])
     default:
       return super.readValue(ofType: type)
@@ -485,14 +452,11 @@ private class LocationPigeonPigeonCodecWriter: FlutterStandardWriter {
     } else if let value = value as? AndroidNotificationOptions {
       super.writeByte(132)
       super.writeValue(value.toList())
-    } else if let value = value as? NotificationIconData {
+    } else if let value = value as? LocationData {
       super.writeByte(133)
       super.writeValue(value.toList())
-    } else if let value = value as? LocationData {
-      super.writeByte(134)
-      super.writeValue(value.toList())
     } else if let value = value as? LocationStatusData {
-      super.writeByte(135)
+      super.writeByte(134)
       super.writeValue(value.toList())
     } else {
       super.writeValue(value)

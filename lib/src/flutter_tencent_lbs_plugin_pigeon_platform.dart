@@ -1,7 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/services.dart';
-
 import 'package:flutter_tencent_lbs_plugin/flutter_tencent_lbs_plugin_platform_interface.dart';
 import 'package:flutter_tencent_lbs_plugin/model/android_notification_options.dart';
 import 'package:flutter_tencent_lbs_plugin/model/location.dart';
@@ -19,6 +17,7 @@ class FlutterTencentLBSPluginPigeonPlatform extends FlutterTencentLBSPluginPlatf
   late final pigeon.TencentLBSHostApi _hostApi;
   late final _PigeonFlutterApi _flutterApi;
   Completer<Location?>? _onceCompleter;
+  bool _initialized = false;
 
   @override
   Future<bool> init({
@@ -43,7 +42,9 @@ class FlutterTencentLBSPluginPigeonPlatform extends FlutterTencentLBSPluginPlatf
       gpsFirst: isGpsFirst,
       gpsFirstTimeOutMs: gpsFirstTimeOut,
     );
-    return _hostApi.configure(options);
+    final ok = await _hostApi.configure(options);
+    _initialized = ok;
+    return ok;
   }
 
   @override
@@ -53,6 +54,9 @@ class FlutterTencentLBSPluginPigeonPlatform extends FlutterTencentLBSPluginPlatf
 
   @override
   Future<Location?> getLocationOnce() async {
+    if (!_initialized) {
+      throw StateError('请先调用 init() 完成初始化');
+    }
     final completer = Completer<Location?>();
     _onceCompleter = completer;
     await _hostApi.requestLocationOnce();
@@ -77,6 +81,9 @@ class FlutterTencentLBSPluginPigeonPlatform extends FlutterTencentLBSPluginPlatf
     bool? gpsFirst,
     int? gpsFirstTimeOutMs,
   }) async {
+    if (!_initialized) {
+      throw StateError('请先调用 init() 完成初始化');
+    }
     final request = pigeon.ContinuousLocationRequest(
       intervalMs: interval,
       requestLevel: requestLevel,
@@ -99,7 +106,6 @@ class FlutterTencentLBSPluginPigeonPlatform extends FlutterTencentLBSPluginPlatf
         enableVibration: androidNotificationOptions.enableVibration,
         playSound: androidNotificationOptions.playSound,
         showWhen: androidNotificationOptions.showWhen,
-        iconData: null,
       );
     }
     await _hostApi.startLocationUpdates(request, pigeonNotif);
@@ -115,6 +121,9 @@ class FlutterTencentLBSPluginPigeonPlatform extends FlutterTencentLBSPluginPlatf
     bool? allowCache,
     bool? gpsFirst,
   }) async {
+    if (!_initialized) {
+      throw StateError('请先调用 init() 完成初始化');
+    }
     final update = pigeon.LocationRequestUpdate(
       intervalMs: intervalMs,
       requestLevel: requestLevel,

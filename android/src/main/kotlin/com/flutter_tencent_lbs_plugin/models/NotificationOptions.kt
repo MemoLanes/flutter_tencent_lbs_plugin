@@ -5,11 +5,10 @@ data class NotificationOptions(
     val id: Int,
     val channelId: String,
     val channelName: String,
-    val channelDescription: String?,
     val contentTitle: String,
     val contentText: String,
+    val channelDescription: String?,
     val enableVibration: Boolean,
     val playSound: Boolean,
     val showWhen: Boolean,
-    val iconData: NotificationIconData?,
 )

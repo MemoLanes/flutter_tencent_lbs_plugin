@@ -37,14 +37,12 @@ class _MainAppState extends State<MainApp> {
   /// 最近一次定位时间
   DateTime? _lastUpdateTime;
   String? _lastError;
+  /// 是否已完成初始化（init 已 await 完成）
+  bool _pluginReady = false;
 
-  @override
-  void initState() {
-    super.initState();
-    locationPlugin.setUserAgreePrivacy();
-    locationPlugin.init(key: "YOUR KEY");
-    locationPlugin.addLocationListener((location) {
-      if (location.code == 0) {
+  void _onLocation(Location location) {
+    if (location.code == 0) {
+      if (mounted) {
         setState(() {
           _lastLocation = location;
           _lastUpdateTime = DateTime.now();
@@ -52,13 +50,37 @@ class _MainAppState extends State<MainApp> {
         });
       }
       print("[[ listener ]]: $location");
-    });
-    locationPlugin.addFailListener((location) {
-      setState(() {
-        _lastError = "code: ${location.code}";
-      });
-      print("[[ fail ]]: ${location.code}");
-    });
+    }
+  }
+
+  void _onFail(Location location) {
+    if (mounted) {
+      setState(() => _lastError = "code: ${location.code}");
+    }
+    print("[[ fail ]]: ${location.code}");
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    locationPlugin.setUserAgreePrivacy();
+    _initAndRegister();
+  }
+
+  /// 先 await init 完成再注册监听，避免竞态
+  Future<void> _initAndRegister() async {
+    await locationPlugin.init(key: "YOUR KEY");
+    if (!mounted) return;
+    locationPlugin.addLocationListener(_onLocation);
+    locationPlugin.addFailListener(_onFail);
+    setState(() => _pluginReady = true);
+  }
+
+  @override
+  void dispose() {
+    locationPlugin.removeLocationListener(_onLocation);
+    locationPlugin.removeFailListener(_onFail);
+    super.dispose();
   }
 
   void _startContinuousLocation() {
@@ -112,6 +134,11 @@ class _MainAppState extends State<MainApp> {
               style: TextStyle(fontSize: 12, color: Colors.grey),
               textAlign: TextAlign.center,
             ),
+            if (!_pluginReady)
+              const Padding(
+                padding: EdgeInsets.only(top: 8),
+                child: Text('初始化中…', style: TextStyle(fontSize: 12, color: Colors.orange)),
+              ),
             const SizedBox(height: 24),
 
             // 权限
@@ -128,24 +155,30 @@ class _MainAppState extends State<MainApp> {
             const Text('单次定位', style: TextStyle(fontWeight: FontWeight.w600)),
             const SizedBox(height: 8),
             FilledButton(
-              onPressed: () {
-                locationPlugin.getLocationOnce().then((value) {
-                  print("[[ getLocationOnce ]]: $value");
-                  if (!mounted) return;
-                  showDialog(
-                    context: context,
-                    builder: (ctx) => AlertDialog(
-                      content: Text(
-                        value != null
-                            ? "经度: ${value.longitude?.toStringAsFixed(6)}\n纬度: ${value.latitude?.toStringAsFixed(6)}"
-                            : "定位失败",
-                      ),
-                    ),
-                  );
-                }).catchError((err) {
-                  print("[[ getLocationOnce ERROR ]]: $err");
-                });
-              },
+              onPressed: _pluginReady
+                  ? () {
+                      locationPlugin.getLocationOnce().then((value) {
+                        print("[[ getLocationOnce ]]: $value");
+                        if (!mounted) return;
+                        showDialog(
+                          context: context,
+                          builder: (ctx) => AlertDialog(
+                            content: Text(
+                              value != null
+                                  ? "经度: ${value.longitude?.toStringAsFixed(6)}\n纬度: ${value.latitude?.toStringAsFixed(6)}"
+                                  : "定位失败",
+                            ),
+                          ),
+                        );
+                      }).catchError((err) {
+                        print("[[ getLocationOnce ERROR ]]: $err");
+                        if (!mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('失败: $err')),
+                        );
+                      });
+                    }
+                  : null,
               child: const Text('获取一次定位'),
             ),
 
@@ -154,7 +187,7 @@ class _MainAppState extends State<MainApp> {
             const Text('连续定位', style: TextStyle(fontWeight: FontWeight.w600)),
             const SizedBox(height: 8),
             FilledButton(
-              onPressed: _isContinuousRunning ? null : _startContinuousLocation,
+              onPressed: _pluginReady && !_isContinuousRunning ? _startContinuousLocation : null,
               child: Text(_isContinuousRunning ? '连续定位已开启' : '开启连续定位 (${_currentIntervalMs ~/ 1000}s 间隔)'),
             ),
             const SizedBox(height: 8),

@@ -141,8 +141,6 @@ class AndroidNotificationOptions {
   bool? playSound;
   /// 是否显示时间。
   bool? showWhen;
-  /// 通知图标（可选）。Android 侧用 bitmapPath 或 resourceId 解析为 drawable 资源。
-  NotificationIconData? iconData;
   AndroidNotificationOptions({
     required this.id,
     required this.channelId,
@@ -153,15 +151,7 @@ class AndroidNotificationOptions {
     this.enableVibration,
     this.playSound,
     this.showWhen,
-    this.iconData,
   });
-}
-
-/// 通知图标数据，用于构建 Android 前台定位通知的小图标。bitmapPath 为本地路径；resourceId 为 Android drawable 资源 ID。
-class NotificationIconData {
-  String? bitmapPath;
-  int? resourceId;
-  NotificationIconData({this.bitmapPath, this.resourceId});
 }
 
 /// 定位结果。对应 Android TencentLocation 接口、iOS TencentLBSLocation 返回字段。

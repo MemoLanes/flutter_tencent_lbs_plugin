@@ -2,6 +2,7 @@ import 'package:flutter_tencent_lbs_plugin/state/location_state.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
 import 'model/android_notification_options.dart';
+import 'model/location.dart';
 
 abstract class FlutterTencentLBSPluginPlatform extends PlatformInterface {
   FlutterTencentLBSPluginPlatform() : super(token: _token);
@@ -70,7 +71,7 @@ abstract class FlutterTencentLBSPluginPlatform extends PlatformInterface {
     throw UnimplementedError('updateLocationRequest() has not been implemented.');
   }
 
-  Future<dynamic> getLocationOnce() {
+  Future<Location?> getLocationOnce() {
     throw UnimplementedError('getLocationOnce() has not been implemented.');
   }
 }

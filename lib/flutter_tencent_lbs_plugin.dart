@@ -9,7 +9,6 @@ import 'src/flutter_tencent_lbs_plugin_pigeon_platform.dart';
 export 'model/android_notification_options.dart';
 export 'model/enum.dart';
 export 'model/location.dart';
-export 'model/notification_icon_data.dart';
 export 'model/status.dart';
 
 class FlutterTencentLBSPlugin {
@@ -133,6 +132,21 @@ class FlutterTencentLBSPlugin {
   /// 定位成功回调
   void addLocationListener(LocationCallBack listener) {
     FlutterTencentLBSPluginPlatform.instance.state.listener.add(listener);
+  }
+
+  /// 移除定位成功回调（需传入与 [addLocationListener] 相同的引用）
+  void removeLocationListener(LocationCallBack listener) {
+    FlutterTencentLBSPluginPlatform.instance.state.listener.remove(listener);
+  }
+
+  /// 移除定位失败回调（需传入与 [addFailListener] 相同的引用）
+  void removeFailListener(LocationCallBack listener) {
+    FlutterTencentLBSPluginPlatform.instance.state.failListener.remove(listener);
+  }
+
+  /// 移除状态回调（需传入与 [addStatusListener] 相同的引用）
+  void removeStatusListener(LocationStatusListener listener) {
+    FlutterTencentLBSPluginPlatform.instance.state.statusListener.remove(listener);
   }
 
   void stop() {

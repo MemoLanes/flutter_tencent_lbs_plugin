@@ -225,7 +225,6 @@ class AndroidNotificationOptions {
     this.enableVibration,
     this.playSound,
     this.showWhen,
-    this.iconData,
   });
 
   /// 前台定位通知 ID，用于 enableForegroundLocation(id, notification)。
@@ -255,9 +254,6 @@ class AndroidNotificationOptions {
   /// 是否显示时间。
   bool? showWhen;
 
-  /// 通知图标（可选）。Android 侧用 bitmapPath 或 resourceId 解析为 drawable 资源。
-  NotificationIconData? iconData;
-
   Object encode() {
     return <Object?>[
       id,
@@ -269,7 +265,6 @@ class AndroidNotificationOptions {
       enableVibration,
       playSound,
       showWhen,
-      iconData,
     ];
   }
 
@@ -285,34 +280,6 @@ class AndroidNotificationOptions {
       enableVibration: result[6] as bool?,
       playSound: result[7] as bool?,
       showWhen: result[8] as bool?,
-      iconData: result[9] as NotificationIconData?,
-    );
-  }
-}
-
-/// 通知图标数据，用于构建 Android 前台定位通知的小图标。bitmapPath 为本地路径；resourceId 为 Android drawable 资源 ID。
-class NotificationIconData {
-  NotificationIconData({
-    this.bitmapPath,
-    this.resourceId,
-  });
-
-  String? bitmapPath;
-
-  int? resourceId;
-
-  Object encode() {
-    return <Object?>[
-      bitmapPath,
-      resourceId,
-    ];
-  }
-
-  static NotificationIconData decode(Object result) {
-    result as List<Object?>;
-    return NotificationIconData(
-      bitmapPath: result[0] as String?,
-      resourceId: result[1] as int?,
     );
   }
 }
@@ -471,14 +438,11 @@ class _PigeonCodec extends StandardMessageCodec {
     }    else if (value is AndroidNotificationOptions) {
       buffer.putUint8(132);
       writeValue(buffer, value.encode());
-    }    else if (value is NotificationIconData) {
+    }    else if (value is LocationData) {
       buffer.putUint8(133);
       writeValue(buffer, value.encode());
-    }    else if (value is LocationData) {
-      buffer.putUint8(134);
-      writeValue(buffer, value.encode());
     }    else if (value is LocationStatusData) {
-      buffer.putUint8(135);
+      buffer.putUint8(134);
       writeValue(buffer, value.encode());
     } else {
       super.writeValue(buffer, value);
@@ -497,10 +461,8 @@ class _PigeonCodec extends StandardMessageCodec {
       case 132: 
         return AndroidNotificationOptions.decode(readValue(buffer)!);
       case 133: 
-        return NotificationIconData.decode(readValue(buffer)!);
-      case 134: 
         return LocationData.decode(readValue(buffer)!);
-      case 135: 
+      case 134: 
         return LocationStatusData.decode(readValue(buffer)!);
       default:
         return super.readValueOfType(type, buffer);
