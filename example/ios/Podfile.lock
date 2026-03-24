@@ -20,7 +20,7 @@ EXTERNAL SOURCES:
 
 SPEC CHECKSUMS:
   Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
-  flutter_tencent_lbs_plugin: 46f70a730c2a0f899971501ff3295621b42b911c
+  flutter_tencent_lbs_plugin: cbbbdcd44b2d6d3faf5490b5ac787652d3157092
   permission_handler_apple: 4ed2196e43d0651e8ff7ca3483a069d469701f2d
 
 PODFILE CHECKSUM: f16b4d85d7944e4dbab4de882ee2bd17901d7c31
