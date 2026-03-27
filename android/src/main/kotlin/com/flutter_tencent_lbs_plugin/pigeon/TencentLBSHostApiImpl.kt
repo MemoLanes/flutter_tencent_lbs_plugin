@@ -53,7 +53,11 @@ class TencentLBSHostApiImpl(
 
     override fun requestLocationOnce() {
         val manager = locationManager ?: return
-        manager.requestSingleFreshLocation(tencentLocationRequest, this, Looper.getMainLooper())
+        val request = tencentLocationRequest ?: return
+        val errorCode = manager.requestSingleFreshLocation(request, this, Looper.getMainLooper())
+        if (errorCode != TencentLocationManager.ERROR_OK) {
+            flutterApi.onError(errorCode.toLong(), "requestSingleFreshLocation failed with error code $errorCode") {}
+        }
     }
 
     override fun startLocationUpdates(

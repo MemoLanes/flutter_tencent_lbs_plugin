@@ -57,6 +57,9 @@ class FlutterTencentLBSPluginPigeonPlatform extends FlutterTencentLBSPluginPlatf
     if (!_initialized) {
       throw StateError('请先调用 init() 完成初始化');
     }
+    if (_onceCompleter != null && !_onceCompleter!.isCompleted) {
+      throw StateError('上一次 getLocationOnce() 仍在进行中，请等待结果后重试');
+    }
     final completer = Completer<Location?>();
     _onceCompleter = completer;
     await _hostApi.requestLocationOnce();

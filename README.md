@@ -17,7 +17,7 @@ Flutter 腾讯位置服务 / 定位插件（第三方），基于腾讯定位 SD
 
 | 平台    | 版本号   |
 |---------|----------|
-| Android | 7.6.1.5（Maven: `com.tencent.map.geolocation:TencentLocationSdk-openplatform`） |
+| Android | 7.6.1.7（Maven: `com.tencent.map.geolocation:TencentLocationSdk-openplatform`） |
 | iOS     | 4.3.0（Frameworks/TencentLBS.framework） |
 
 ---
@@ -177,8 +177,7 @@ void stop();
 
 - **Location**：定位结果。字段：`latitude`, `longitude`, `altitude`, `horizontalAccuracy`, `verticalAccuracy`, `speed`, `bearing`, `time`, `sourceProvider`（原生原始值）, `locationSource`（双端统一）, `code`（0 为成功）。
 - **LocationStatus**：状态回调数据（Android）。`name`, `status`。
-- **AndroidNotificationOptions**：Android 前台通知配置。`id`, `channelId`, `channelName`, `notificationTitle`, `notificationText`, `channelDescription`, `enableVibration`, `playSound`, `showWhen`, `iconData`（可选）。
-- **NotificationIconData**：通知图标。`resType`（ResourceType.drawable/mipmap）, `resPrefix`（ResourcePrefix.ic/img）, `name`, `backgroundColor`（可选）。
+- **AndroidNotificationOptions**：Android 前台通知配置。`id`, `channelId`, `channelName`, `notificationTitle`, `notificationText`, `channelDescription`, `enableVibration`, `playSound`, `showWhen`。
 - **枚举类**：`TencentLBSLocationCoordinateType`, `TencentLBSRequestLevel`, `TencentLBSLocMode`, **`LocationSource`**（定位来源统一常量：`Unknown=-1`, `Gps=0`, `Network=1`, `Simulated=2`, `AccessoryGps=3`, `AccessoryNetwork=4`，iOS 与 Android SDK 返回值已映射为此统一含义）。
 
 ---

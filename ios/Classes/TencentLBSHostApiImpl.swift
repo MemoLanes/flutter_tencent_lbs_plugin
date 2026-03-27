@@ -81,8 +81,8 @@ final class TencentLBSHostApiImpl: NSObject, TencentLBSHostApi, TencentLBSLocati
     func updateLocationRequest(update: LocationRequestUpdate?) throws {
         guard let manager = locationManager, let update = update, isListenLocationUpdates else { return }
         var needRestart = false
-        if let interval = update.intervalMs, interval > 0 {
-            manager.locationCallbackInterval = UInt64(interval)
+        if let interval = update.intervalMs {
+            manager.locationCallbackInterval = UInt64(max(0, interval))
             needRestart = true
         }
         if let rl = update.requestLevel {
@@ -104,8 +104,7 @@ final class TencentLBSHostApiImpl: NSObject, TencentLBSHostApi, TencentLBSLocati
             let isBackground = UIApplication.shared.applicationState == .background
             var taskId: UIBackgroundTaskIdentifier = .invalid
             if isBackground {
-                taskId = UIApplication.shared.beginBackgroundTask(withName: "TencentLBSRestart") { [weak self] in
-                    guard let self = self else { return }
+                taskId = UIApplication.shared.beginBackgroundTask(withName: "TencentLBSRestart") {
                     if Self._restartTaskId != .invalid {
                         UIApplication.shared.endBackgroundTask(Self._restartTaskId)
                         Self._restartTaskId = .invalid
