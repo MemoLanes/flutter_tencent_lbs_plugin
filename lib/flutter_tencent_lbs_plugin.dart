@@ -23,6 +23,9 @@ class FlutterTencentLBSPlugin {
     _ensurePigeon();
   }
 
+  /// 初始化 SDK。
+  ///
+  /// 调用成功后才可继续调用 [getLocationOnce]、[getLocation] 等定位接口。
   Future<bool> init({
     /// 申请的 apiKey
     required String key,
@@ -64,16 +67,22 @@ class FlutterTencentLBSPlugin {
     );
   }
 
-  void setUserAgreePrivacy() {
-    FlutterTencentLBSPluginPlatform.instance.setUserAgreePrivacy();
+  /// 设置用户是否同意隐私协议。
+  Future<void> setUserAgreePrivacy() async {
+    await FlutterTencentLBSPluginPlatform.instance.setUserAgreePrivacy();
   }
 
-  /// 单次定位
+  /// 发起单次定位请求。
+  ///
+  /// 成功返回 [Location]；失败或超时返回 `null`。
   Future<Location?> getLocationOnce() async {
     return await FlutterTencentLBSPluginPlatform.instance.getLocationOnce();
   }
 
-  /// 连续定位（参数与 SDK 一致，可选 requestLevel、locMode、allowGps 等）
+  /// 开启连续定位（参数与 SDK 一致）。
+  ///
+  /// [interval] 单位毫秒，严格要求 `>= 1000`，否则抛 [RangeError]。
+  /// 当 [backgroundLocation] 为 `true` 时，Android 需传 [androidNotificationOptions]。
   Future<void> getLocation({
     required int interval,
     AndroidNotificationOptions? androidNotificationOptions,
@@ -85,6 +94,7 @@ class FlutterTencentLBSPlugin {
     bool? gpsFirst,
     int? gpsFirstTimeOutMs,
   }) async {
+    _validateIntervalMs(interval);
     return await FlutterTencentLBSPluginPlatform.instance.getLocation(
       interval: interval,
       androidNotificationOptions: androidNotificationOptions,
@@ -98,7 +108,9 @@ class FlutterTencentLBSPlugin {
     );
   }
 
-  /// 连续定位开启后可调用，更新超时时间、定位间隔等参数（与 SDK 文档一致）
+  /// 连续定位开启后，动态更新请求参数。
+  ///
+  /// 仅需传要变更的字段；[intervalMs] 若传入则必须 `>= 1000`，否则抛 [RangeError]。
   Future<void> updateLocationRequest({
     int? intervalMs,
     int? requestLevel,
@@ -108,6 +120,9 @@ class FlutterTencentLBSPlugin {
     bool? allowCache,
     bool? gpsFirst,
   }) async {
+    if (intervalMs != null) {
+      _validateIntervalMs(intervalMs);
+    }
     return await FlutterTencentLBSPluginPlatform.instance.updateLocationRequest(
       intervalMs: intervalMs,
       requestLevel: requestLevel,
@@ -119,17 +134,17 @@ class FlutterTencentLBSPlugin {
     );
   }
 
-  /// 状态回调（仅Android）
+  /// 添加状态回调（仅 Android）。
   void addStatusListener(LocationStatusListener listener) {
     FlutterTencentLBSPluginPlatform.instance.state.statusListener.add(listener);
   }
 
-  /// 定位失败回调
+  /// 添加定位失败回调。
   void addFailListener(LocationCallBack listener) {
     FlutterTencentLBSPluginPlatform.instance.state.failListener.add(listener);
   }
 
-  /// 定位成功回调
+  /// 添加定位成功回调。
   void addLocationListener(LocationCallBack listener) {
     FlutterTencentLBSPluginPlatform.instance.state.listener.add(listener);
   }
@@ -149,7 +164,14 @@ class FlutterTencentLBSPlugin {
     FlutterTencentLBSPluginPlatform.instance.state.statusListener.remove(listener);
   }
 
+  /// 停止连续定位。
   void stop() {
     FlutterTencentLBSPluginPlatform.instance.stop();
+  }
+
+  static void _validateIntervalMs(int intervalMs) {
+    if (intervalMs < 1000) {
+      throw RangeError.value(intervalMs, 'intervalMs', '必须大于等于 1000 毫秒');
+    }
   }
 }

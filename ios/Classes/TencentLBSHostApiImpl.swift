@@ -57,6 +57,9 @@ final class TencentLBSHostApiImpl: NSObject, TencentLBSHostApi, TencentLBSLocati
 
     func startLocationUpdates(request: ContinuousLocationRequest, androidNotificationOptions: AndroidNotificationOptions?) throws {
         guard let manager = locationManager, !isListenLocationUpdates else { return }
+        guard request.intervalMs >= 1000 else {
+            throw FlutterError(code: "invalid-argument", message: "intervalMs 必须大于等于 1000，当前值: \(request.intervalMs)", details: nil)
+        }
         isListenLocationUpdates = true
         manager.locationCallbackInterval = UInt64(request.intervalMs)
         if request.backgroundLocation == true {
@@ -82,7 +85,10 @@ final class TencentLBSHostApiImpl: NSObject, TencentLBSHostApi, TencentLBSLocati
         guard let manager = locationManager, let update = update, isListenLocationUpdates else { return }
         var needRestart = false
         if let interval = update.intervalMs {
-            manager.locationCallbackInterval = UInt64(max(0, interval))
+            guard interval >= 1000 else {
+                throw FlutterError(code: "invalid-argument", message: "intervalMs 必须大于等于 1000，当前值: \(interval)", details: nil)
+            }
+            manager.locationCallbackInterval = UInt64(interval)
             needRestart = true
         }
         if let rl = update.requestLevel {
@@ -171,7 +177,7 @@ final class TencentLBSHostApiImpl: NSObject, TencentLBSHostApi, TencentLBSLocati
             accuracy: cl.horizontalAccuracy,
             horizontalAccuracy: cl.horizontalAccuracy,
             verticalAccuracy: cl.verticalAccuracy,
-            speed: cl.speed >= 0 ? cl.speed : 0,
+            speed: cl.speed >= 0 ? cl.speed : nil,
             bearing: cl.course >= 0 ? cl.course : nil,
             address: location.address,
             name: location.name,

@@ -48,8 +48,8 @@ class FlutterTencentLBSPluginPigeonPlatform extends FlutterTencentLBSPluginPlatf
   }
 
   @override
-  void setUserAgreePrivacy() {
-    _hostApi.setUserAgreePrivacy(true);
+  Future<void> setUserAgreePrivacy() async {
+    await _hostApi.setUserAgreePrivacy(true);
   }
 
   @override
@@ -87,6 +87,7 @@ class FlutterTencentLBSPluginPigeonPlatform extends FlutterTencentLBSPluginPlatf
     if (!_initialized) {
       throw StateError('请先调用 init() 完成初始化');
     }
+    _validateIntervalMs(interval);
     final request = pigeon.ContinuousLocationRequest(
       intervalMs: interval,
       requestLevel: requestLevel,
@@ -127,6 +128,9 @@ class FlutterTencentLBSPluginPigeonPlatform extends FlutterTencentLBSPluginPlatf
     if (!_initialized) {
       throw StateError('请先调用 init() 完成初始化');
     }
+    if (intervalMs != null) {
+      _validateIntervalMs(intervalMs);
+    }
     final update = pigeon.LocationRequestUpdate(
       intervalMs: intervalMs,
       requestLevel: requestLevel,
@@ -141,7 +145,7 @@ class FlutterTencentLBSPluginPigeonPlatform extends FlutterTencentLBSPluginPlatf
 
   @override
   void stop() {
-    _hostApi.stopLocationUpdates();
+    unawaited(_hostApi.stopLocationUpdates());
   }
 
   void _onLocation(pigeon.LocationData data) {
@@ -155,11 +159,13 @@ class FlutterTencentLBSPluginPigeonPlatform extends FlutterTencentLBSPluginPlatf
       _onceCompleter = null;
       return;
     }
-    for (final listener in state.listener) {
+    final listeners = state.listener.toList(growable: false);
+    for (final listener in listeners) {
       listener(loc);
     }
     if ((data.code ?? 1) != 0) {
-      for (final listener in state.failListener) {
+      final failListeners = state.failListener.toList(growable: false);
+      for (final listener in failListeners) {
         listener(loc);
       }
     }
@@ -172,7 +178,8 @@ class FlutterTencentLBSPluginPigeonPlatform extends FlutterTencentLBSPluginPlatf
       _onceCompleter = null;
       return;
     }
-    for (final listener in state.failListener) {
+    final failListeners = state.failListener.toList(growable: false);
+    for (final listener in failListeners) {
       listener(loc);
     }
   }
@@ -183,7 +190,8 @@ class FlutterTencentLBSPluginPigeonPlatform extends FlutterTencentLBSPluginPlatf
     if (status.status != null && status.name != null) {
       res = LocationStatus(name: status.name!, status: status.status!);
     }
-    for (final listener in state.statusListener) {
+    final statusListeners = state.statusListener.toList(growable: false);
+    for (final listener in statusListeners) {
       listener(res);
     }
   }
@@ -202,6 +210,12 @@ class FlutterTencentLBSPluginPigeonPlatform extends FlutterTencentLBSPluginPlatf
     loc.sourceProvider = data.sourceProvider;
     loc.locationSource = data.locationSource;
     return loc;
+  }
+
+  static void _validateIntervalMs(int intervalMs) {
+    if (intervalMs < 1000) {
+      throw RangeError.value(intervalMs, 'intervalMs', '必须大于等于 1000 毫秒');
+    }
   }
 }
 

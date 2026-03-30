@@ -76,13 +76,22 @@ class TencentLBSHostApiImpl(
         }
         isListeningLocationUpdates = true
 
+        val intervalError = validateIntervalMs(request.intervalMs)
+        if (intervalError != null) {
+            isListeningLocationUpdates = false
+            flutterApi.onError(-1L, intervalError) {}
+            return
+        }
         req.interval = request.intervalMs
-        request.requestLevel?.toInt()?.let { req.requestLevel = it }
-        request.locMode?.toInt()?.let { req.locMode = it }
-        request.allowGps?.let { req.isAllowGPS = it }
-        request.allowCache?.let { req.isAllowCache = it }
-        request.gpsFirst?.let { req.isGpsFirst = it }
-        request.gpsFirstTimeOutMs?.toInt()?.coerceIn(0, 60000)?.let { req.gpsFirstTimeOut = it }
+        applyCommonRequestOptions(
+            req = req,
+            requestLevel = request.requestLevel,
+            locMode = request.locMode,
+            allowGps = request.allowGps,
+            allowCache = request.allowCache,
+            gpsFirst = request.gpsFirst,
+            gpsFirstTimeOutMs = request.gpsFirstTimeOutMs,
+        )
 
         if (request.backgroundLocation == true && androidNotificationOptions != null) {
             val notifId = androidNotificationOptions.id.toInt()
@@ -109,18 +118,34 @@ class TencentLBSHostApiImpl(
             update.gpsFirst == null
 
         if (onlyInterval && update.intervalMs != null && update.intervalMs!! > 0) {
-            manager.changeCallbackInterval(update.intervalMs!!)
-            req.interval = update.intervalMs!!
+            val interval = update.intervalMs!!
+            val intervalError = validateIntervalMs(interval)
+            if (intervalError != null) {
+                flutterApi.onError(-1L, intervalError) {}
+                return
+            }
+            manager.changeCallbackInterval(interval)
+            req.interval = interval
             return
         }
 
-        update.intervalMs?.let { req.interval = it }
-        update.requestLevel?.toInt()?.let { req.requestLevel = it }
-        update.locMode?.toInt()?.let { req.locMode = it }
-        update.gpsFirstTimeOutMs?.toInt()?.coerceIn(0, 60000)?.let { req.gpsFirstTimeOut = it }
-        update.allowGps?.let { req.isAllowGPS = it }
-        update.allowCache?.let { req.isAllowCache = it }
-        update.gpsFirst?.let { req.isGpsFirst = it }
+        update.intervalMs?.let {
+            val intervalError = validateIntervalMs(it)
+            if (intervalError != null) {
+                flutterApi.onError(-1L, intervalError) {}
+                return
+            }
+            req.interval = it
+        }
+        applyCommonRequestOptions(
+            req = req,
+            requestLevel = update.requestLevel,
+            locMode = update.locMode,
+            allowGps = update.allowGps,
+            allowCache = update.allowCache,
+            gpsFirst = update.gpsFirst,
+            gpsFirstTimeOutMs = update.gpsFirstTimeOutMs,
+        )
 
         manager.removeUpdates(this)
         manager.requestLocationUpdates(req, this)
@@ -195,5 +220,30 @@ class TencentLBSHostApiImpl(
             playSound = p.playSound ?: false,
             showWhen = p.showWhen ?: false,
         )
+    }
+
+    private fun applyCommonRequestOptions(
+        req: TencentLocationRequest,
+        requestLevel: Long?,
+        locMode: Long?,
+        allowGps: Boolean?,
+        allowCache: Boolean?,
+        gpsFirst: Boolean?,
+        gpsFirstTimeOutMs: Long?,
+    ) {
+        requestLevel?.toInt()?.let { req.requestLevel = it }
+        locMode?.toInt()?.let { req.locMode = it }
+        allowGps?.let { req.isAllowGPS = it }
+        allowCache?.let { req.isAllowCache = it }
+        gpsFirst?.let { req.isGpsFirst = it }
+        gpsFirstTimeOutMs?.toInt()?.coerceIn(0, 60000)?.let { req.gpsFirstTimeOut = it }
+    }
+
+    /** 校验 interval（严格按指南口径）：必须 >= 1000ms。 */
+    private fun validateIntervalMs(intervalMs: Long): String? {
+        if (intervalMs < 1000L) {
+            return "intervalMs 必须大于等于 1000，当前值: $intervalMs"
+        }
+        return null
     }
 }

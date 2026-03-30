@@ -40,7 +40,7 @@ abstract class FlutterTencentLBSPluginPlatform extends PlatformInterface {
     throw UnimplementedError('stop() has not been implemented.');
   }
 
-  void setUserAgreePrivacy() {
+  Future<void> setUserAgreePrivacy() {
     throw UnimplementedError('setUserAgreePrivacy() has not been implemented.');
   }
 
