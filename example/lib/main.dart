@@ -63,13 +63,19 @@ class _MainAppState extends State<MainApp> {
   @override
   void initState() {
     super.initState();
-    locationPlugin.setUserAgreePrivacy();
     _initAndRegister();
   }
 
-  /// 先 await init 完成再注册监听，避免竞态
+  /// 先 await 隐私同意与 init 完成再注册监听，避免竞态
   Future<void> _initAndRegister() async {
-    await locationPlugin.init(key: "YOUR KEY");
+    try {
+      await locationPlugin.setUserAgreePrivacy();
+      await locationPlugin.init(key: "YOUR KEY");
+    } catch (err) {
+      if (!mounted) return;
+      setState(() => _lastError = '初始化失败: $err');
+      return;
+    }
     if (!mounted) return;
     locationPlugin.addLocationListener(_onLocation);
     locationPlugin.addFailListener(_onFail);
