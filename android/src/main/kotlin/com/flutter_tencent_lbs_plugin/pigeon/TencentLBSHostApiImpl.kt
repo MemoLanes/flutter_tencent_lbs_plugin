@@ -108,13 +108,17 @@ class TencentLBSHostApiImpl(
             update.allowCache == null &&
             update.gpsFirst == null
 
-        if (onlyInterval && update.intervalMs != null && update.intervalMs!! > 0) {
-            manager.changeCallbackInterval(update.intervalMs!!)
-            req.interval = update.intervalMs!!
+        if (onlyInterval && update.intervalMs != null) {
+            val safeInterval = update.intervalMs!!.coerceAtLeast(0L)
+            manager.changeCallbackInterval(safeInterval)
+            req.interval = safeInterval
             return
         }
 
-        update.intervalMs?.let { req.interval = it }
+        update.intervalMs?.let { interval ->
+            val safeInterval = interval.coerceAtLeast(0L)
+            req.interval = safeInterval
+        }
         update.requestLevel?.toInt()?.let { req.requestLevel = it }
         update.locMode?.toInt()?.let { req.locMode = it }
         update.gpsFirstTimeOutMs?.toInt()?.coerceIn(0, 60000)?.let { req.gpsFirstTimeOut = it }
