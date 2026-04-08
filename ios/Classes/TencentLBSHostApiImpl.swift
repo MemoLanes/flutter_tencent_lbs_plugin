@@ -58,7 +58,7 @@ final class TencentLBSHostApiImpl: NSObject, TencentLBSHostApi, TencentLBSLocati
     func startLocationUpdates(request: ContinuousLocationRequest, androidNotificationOptions: AndroidNotificationOptions?) throws {
         guard let manager = locationManager, !isListenLocationUpdates else { return }
         guard request.intervalMs >= 1000 else {
-            throw FlutterError(code: "invalid-argument", message: "intervalMs 必须大于等于 1000，当前值: \(request.intervalMs)", details: nil)
+            throw PigeonError(code: "invalid-argument", message: "intervalMs 必须大于等于 1000，当前值: \(request.intervalMs)", details: nil)
         }
         isListenLocationUpdates = true
         manager.locationCallbackInterval = UInt64(request.intervalMs)
@@ -86,7 +86,7 @@ final class TencentLBSHostApiImpl: NSObject, TencentLBSHostApi, TencentLBSLocati
         var needRestart = false
         if let interval = update.intervalMs {
             guard interval >= 1000 else {
-                throw FlutterError(code: "invalid-argument", message: "intervalMs 必须大于等于 1000，当前值: \(interval)", details: nil)
+                throw PigeonError(code: "invalid-argument", message: "intervalMs 必须大于等于 1000，当前值: \(interval)", details: nil)
             }
             manager.locationCallbackInterval = UInt64(interval)
             needRestart = true
