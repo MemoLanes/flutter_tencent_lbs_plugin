@@ -1,5 +1,3 @@
-import 'notification_icon_data.dart';
-
 class AndroidNotificationOptions {
   AndroidNotificationOptions({
     required this.id,
@@ -11,7 +9,6 @@ class AndroidNotificationOptions {
     this.enableVibration = false,
     this.playSound = false,
     this.showWhen = false,
-    this.iconData,
   })  : assert(channelId.isNotEmpty),
         assert(channelName.isNotEmpty),
         assert(notificationTitle.isNotEmpty);
@@ -25,7 +22,6 @@ class AndroidNotificationOptions {
   final bool enableVibration;
   final bool playSound;
   final bool showWhen;
-  final NotificationIconData? iconData;
 
   Map<String, dynamic> toJson() {
     return {
@@ -38,7 +34,6 @@ class AndroidNotificationOptions {
       'notificationText': notificationText,
       'playSound': playSound,
       'showWhen': showWhen,
-      'iconData': iconData?.toJson(),
     };
   }
 }

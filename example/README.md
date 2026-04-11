@@ -1,16 +1,34 @@
-# flutter_tencent_lbs_plugin_example
+# 腾讯定位插件示例
 
-Demonstrates how to use the flutter_tencent_lbs_plugin plugin.
+## 运行前准备
 
-## Getting Started
+1. **申请 Key**：在 [腾讯位置服务](https://lbs.qq.com/) 申请 Android / iOS Key。
+2. **替换 Key**：
+   - 在 `lib/main.dart` 中把 `locationPlugin.init(key: "YOUR KEY")` 的 `"YOUR KEY"` 换成你的 Key。
+   - Android：在 `android/app/src/main/AndroidManifest.xml` 中把 `<meta-data android:name="TencentMapSDK" android:value="YOUR KEY" />` 的 `YOUR KEY` 换成你的 Key。
 
-This project is a starting point for a Flutter application.
+## 运行
 
-A few resources to get you started if this is your first Flutter project:
+```bash
+# 在仓库根目录
+cd example
+flutter pub get
+flutter run
+```
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+## 功能说明
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+- **权限**：请求定位权限。
+- **单次定位**：获取一次位置并弹窗显示。
+- **连续定位**：开启后按设定间隔回调；可点击「改为 2/5/10 秒」在运行中修改回调间隔。
+- **停止连续定位**：停止后台定位。
+
+## Android 构建说明
+
+本示例的 Android 配置与 **Flutter 官方模板** 一致（Kotlin DSL）：
+
+- **Gradle**：8.14  
+- **Android Gradle Plugin**：8.11.1  
+- **Kotlin**：2.2.20  
+
+若构建报错，请先执行 `flutter clean` 再 `flutter run`。

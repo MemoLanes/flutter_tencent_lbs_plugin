@@ -1,53 +1,41 @@
-// ignore_for_file: constant_identifier_names
-
-class LocationCode {
-  /// 定位成功
-  static const int ERROR_OK = 0;
-
-  /// 网络问题引起的定位失败
-  static const int ERROR_NETWORK = 1;
-
-  /// GPS, Wi-Fi 或基站错误引起的定位失败：
-  /// 1、用户的手机确实采集不到定位凭据，比如偏远地区比如地下车库电梯内等;
-  /// 2、开关跟权限问题，比如用户关闭了位置信息，关闭了Wi-Fi，未授予app定位权限等。
-  static const int ERROR_BAD_JSON = 2;
-
-  /// 无法将WGS84坐标转换成GCJ-02坐标时的定位失败
-  static const int ERROR_WGS84 = 4;
-
-  /// 未知原因引起的定位失败
-  static const int ERROR_UNKNOWN = 404;
-}
-
+/// 定位结果（与 SDK 回调一致）
 class Location {
   /// 纬度
   double? latitude;
 
-  ///经度
+  /// 经度
   double? longitude;
-  ///海拔
+  /// 海拔，单位 m
   double? altitude;
-  ///精度
-  double? accuracy;
-  ///速度
+
+  /// 水平精度，单位 m
+  double? horizontalAccuracy;
+
+  /// 垂直精度（海拔精度），单位 m。仅 iOS 有值，Android 为 null。
+  double? verticalAccuracy;
+
+  /// 速度，单位 m/s
   double? speed;
-  ///时间
+
+  /// 方向/朝向，单位度（0～360），仅 GPS 时可能有效
+  double? bearing;
+
+  /// 时间（毫秒时间戳）
   int? time;
-  ///来源
+
+  /// 定位来源（原生原始值）。Android 为 getSourceProvider() 字符串；iOS 可能为空，以 [locationSource] 为准。
   String? sourceProvider;
 
+  /// 定位来源（双端统一）。见 [LocationSource]：-1=未知，0=GPS，1=网络，2=模拟，3=外设GPS，4=外设网络。
+  int? locationSource;
+
+  /// 结果码：0=成功，非 0 为失败（如 1 网络问题、2 权限/采集失败、4 WGS84 转换失败、404 未知）
   int code = 1;
 
-  Map<String, dynamic> toJson() {
-    final map = <String, dynamic>{};
-    map['latitude'] = latitude;
-    map['longitude'] = longitude;
-    map['accuracy'] = accuracy;
-    map['altitude'] = altitude;
-    map['speed'] = speed;
-    map['time'] = time;
-    map['sourceProvider'] = sourceProvider;
-
-    return map;
-  }
+  @override
+  String toString() =>
+      'Location(code: $code, latitude: $latitude, longitude: $longitude, altitude: $altitude, '
+      'horizontalAccuracy: $horizontalAccuracy, verticalAccuracy: $verticalAccuracy, '
+      'speed: $speed, bearing: $bearing, time: $time, '
+      'sourceProvider: $sourceProvider, locationSource: $locationSource)';
 }
