@@ -16,7 +16,7 @@ let package = Package(
     targets: [
         .binaryTarget(
             name: "TencentLBS",
-            path: "../Frameworks/TencentLBS.xcframework"
+            path: "TencentLBS.xcframework"
         ),
         .target(
             name: "flutter_tencent_lbs_plugin",

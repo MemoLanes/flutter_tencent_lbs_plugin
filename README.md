@@ -18,7 +18,7 @@ Flutter 腾讯位置服务 / 定位插件（第三方），基于腾讯定位 SD
 | 平台    | 版本号   |
 |---------|----------|
 | Android | 7.6.1.8（Maven: `com.tencent.map.geolocation:TencentLocationSdk-openplatform`） |
-| iOS     | 4.3.1（Frameworks/TencentLBS.xcframework） |
+| iOS     | 4.3.1（flutter_tencent_lbs_plugin/TencentLBS.xcframework） |
 
 ---
 

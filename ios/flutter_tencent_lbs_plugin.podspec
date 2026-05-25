@@ -13,7 +13,7 @@ A new Flutter plugin project.
   s.license          = { :file => '../LICENSE' }
   s.author           = { 'Your Company' => 'email@example.com' }
   s.source           = { :path => '.' }
-  s.ios.vendored_frameworks = 'Frameworks/TencentLBS.xcframework'
+  s.ios.vendored_frameworks = 'flutter_tencent_lbs_plugin/TencentLBS.xcframework'
   s.source_files = 'flutter_tencent_lbs_plugin/Sources/flutter_tencent_lbs_plugin/**/*.swift'
   s.libraries = 'c++'
   s.dependency 'Flutter'
