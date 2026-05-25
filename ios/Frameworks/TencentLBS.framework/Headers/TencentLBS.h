@@ -14,8 +14,9 @@ FOUNDATION_EXPORT double TencentLBSVersionNumber;
 //! Project version string for TencentLBS.
 FOUNDATION_EXPORT const unsigned char TencentLBSVersionString[];
 
-// In this header, you should import all the public headers of your framework using statements like #import <TencentLBS/PublicHeader.h>
 
 #import <TencentLBS/TencentLBSLocation.h>
 #import <TencentLBS/TencentLBSLocationManager.h>
 #import <TencentLBS/TencentLBSLocationUtils.h>
+#import <TencentLBS/TencentLBSGeofenceRegion.h>
+#import <TencentLBS/TencentLBSGeofenceManager.h>
