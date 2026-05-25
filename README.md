@@ -262,8 +262,8 @@ void stop();
 - **Pigeon 实现**：`lib/src/flutter_tencent_lbs_plugin_pigeon_platform.dart`，实现接口并调用 Pigeon 生成 API；将 Pigeon 的 `LocationData` 转为对外 `Location`。
 - **Pigeon 定义**：`pigeons/location_api.dart`。修改后需执行：  
   `dart run pigeon --input pigeons/location_api.dart`  
-  会生成：`lib/src/pigeon/location_pigeon.dart`、Android `pigeon/LocationPigeon.kt` 与 `TencentLBSHostApiImpl.kt`、iOS `Classes/pigeon/LocationPigeon.swift`。**序列化格式为 List（按字段顺序），不可改为 Map；维护时只改 pigeons 定义并重新生成即可。**
-- **原生层**：Android 实现位于 `android/.../pigeon/TencentLBSHostApiImpl.kt`；iOS 为 `ios/Classes/TencentLBSHostApiImpl.swift`、`FlutterTencentLbsPlugin.swift`，仅使用 Swift + Pigeon，无 ObjC Pigeon、无 Bridging Header。
+  会生成：`lib/src/pigeon/location_pigeon.dart`、Android `pigeon/LocationPigeon.kt` 与 `TencentLBSHostApiImpl.kt`、iOS `ios/flutter_tencent_lbs_plugin/Sources/flutter_tencent_lbs_plugin/pigeon/LocationPigeon.swift`。**序列化格式为 List（按字段顺序），不可改为 Map；维护时只改 pigeons 定义并重新生成即可。**
+- **原生层**：Android 实现位于 `android/.../pigeon/TencentLBSHostApiImpl.kt`；iOS 为 `ios/flutter_tencent_lbs_plugin/Sources/flutter_tencent_lbs_plugin/TencentLBSHostApiImpl.swift`、`FlutterTencentLbsPlugin.swift`（支持 CocoaPods + SPM 双模式），仅使用 Swift + Pigeon，无 ObjC Pigeon、无 Bridging Header。
 - **已废弃**：无 MethodChannel 实现；iOS 无 ObjC Pigeon 输出；插件不再生成或依赖 `LocationCode`、Bridging Header。
 
 ---
