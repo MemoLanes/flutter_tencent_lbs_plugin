@@ -1,26 +1,20 @@
 PODS:
   - Flutter (1.0.0)
-  - flutter_tencent_lbs_plugin (0.0.1):
-    - Flutter
   - permission_handler_apple (9.3.0):
     - Flutter
 
 DEPENDENCIES:
   - Flutter (from `Flutter`)
-  - flutter_tencent_lbs_plugin (from `.symlinks/plugins/flutter_tencent_lbs_plugin/ios`)
   - permission_handler_apple (from `.symlinks/plugins/permission_handler_apple/ios`)
 
 EXTERNAL SOURCES:
   Flutter:
     :path: Flutter
-  flutter_tencent_lbs_plugin:
-    :path: ".symlinks/plugins/flutter_tencent_lbs_plugin/ios"
   permission_handler_apple:
     :path: ".symlinks/plugins/permission_handler_apple/ios"
 
 SPEC CHECKSUMS:
   Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
-  flutter_tencent_lbs_plugin: cbbbdcd44b2d6d3faf5490b5ac787652d3157092
   permission_handler_apple: 4ed2196e43d0651e8ff7ca3483a069d469701f2d
 
 PODFILE CHECKSUM: f16b4d85d7944e4dbab4de882ee2bd17901d7c31

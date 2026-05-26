@@ -12,7 +12,7 @@ import 'package:pigeon/pigeon.dart';
   kotlinOptions: KotlinOptions(
     package: 'com.flutter_tencent_lbs_plugin.pigeon',
   ),
-  swiftOut: 'ios/Classes/pigeon/LocationPigeon.swift',
+  swiftOut: 'ios/flutter_tencent_lbs_plugin/Sources/flutter_tencent_lbs_plugin/pigeon/LocationPigeon.swift',
   swiftOptions: SwiftOptions(),
 ))
 
