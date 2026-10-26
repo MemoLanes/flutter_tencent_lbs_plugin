@@ -10,6 +10,7 @@ export 'model/android_notification_options.dart';
 export 'model/enum.dart';
 export 'model/location.dart';
 export 'model/status.dart';
+export 'android_location_recorder.dart';
 
 class FlutterTencentLBSPlugin {
   static bool _pigeonRegistered = false;

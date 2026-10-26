@@ -74,8 +74,6 @@ class TencentLBSHostApiImpl(
                 return
             }
         }
-        isListeningLocationUpdates = true
-
         val intervalError = validateIntervalMs(request.intervalMs)
         if (intervalError != null) {
             isListeningLocationUpdates = false
@@ -100,7 +98,12 @@ class TencentLBSHostApiImpl(
                 manager.enableForegroundLocation(notifId, NotificationUtils.buildNotification(context, opts))
             }
         }
-        manager.requestLocationUpdates(req, this)
+        val code = manager.requestLocationUpdates(req, this, Looper.getMainLooper())
+        if (code != 0) {
+            manager.disableForegroundLocation(true)
+            throw IllegalStateException("requestLocationUpdates failed with error code $code")
+        }
+        isListeningLocationUpdates = true
     }
 
     override fun updateLocationRequest(update: LocationRequestUpdate?) {
@@ -148,7 +151,11 @@ class TencentLBSHostApiImpl(
         )
 
         manager.removeUpdates(this)
-        manager.requestLocationUpdates(req, this)
+        val code = manager.requestLocationUpdates(req, this, Looper.getMainLooper())
+        if (code != 0) {
+            isListeningLocationUpdates = false
+            throw IllegalStateException("requestLocationUpdates failed with error code $code")
+        }
     }
 
     override fun stopLocationUpdates() {
