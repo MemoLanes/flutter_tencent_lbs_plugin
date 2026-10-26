@@ -1,5 +1,8 @@
 package com.flutter_tencent_lbs_plugin.recorder
 
+import android.database.sqlite.SQLiteDatabase
+import android.system.ErrnoException
+import android.system.OsConstants
 import com.tencent.map.geolocation.TencentLocation
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -15,14 +18,20 @@ import org.mockito.Mockito
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
+import java.io.File
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34], manifest = Config.NONE)
+@Config(sdk = [34], manifest = Config.NONE, shadows = [RecorderMarkerLinuxShadow::class])
 class RecordingStoreTest {
     private val context get() = RuntimeEnvironment.getApplication()
 
     @Before fun before() { clean() }
-    @After fun after() { clean() }
+    @After fun after() {
+        clean()
+        assertTrue(RecorderMarkerLinuxShadow.openedDescriptors.all { !it.valid() }, "Marker read leaked a descriptor")
+    }
 
     private fun clean() {
         context.deleteDatabase("tencent_location_recording.db")
@@ -89,6 +98,155 @@ class RecordingStoreTest {
         store.start(config())
         assertEquals(true, store.getState()["isRecording"])
         assertNull(store.getState()["lastError"])
+        store.close()
+    }
+
+    @Test fun latestSnapshotSurvivesAcknowledgementAndDoesNotDependOnPendingRows() {
+        val store = RecordingStore(context)
+        assertNull(store.getSnapshot()["latestLocation"])
+        store.start(config())
+        store.append(5678, point())
+        val batch = store.readBatch(256)
+        val snapshot = store.getSnapshot()
+        assertEquals(batch["journalId"], snapshot["journalId"])
+        assertEquals((batch["locations"] as List<*>).single(), snapshot["latestLocation"])
+        assertEquals(store.getState(), snapshot["state"])
+        store.acknowledge(batch["journalId"] as String, sequence(batch))
+        assertTrue((store.readBatch(256)["locations"] as List<*>).isEmpty())
+        assertEquals(snapshot, store.getSnapshot())
+        store.close()
+
+        val reopened = RecordingStore(context)
+        assertEquals(snapshot, reopened.getSnapshot())
+        reopened.close()
+    }
+
+    @Test fun boundedBatchDoesNotChasePointsAppendedAfterTheSnapshot() {
+        val store = RecordingStore(context)
+        store.append(1, point())
+        val initial = store.readBatch(256)
+        val boundary = sequence(initial)
+        store.append(2, point())
+        assertEquals(initial, store.readBatch(256, boundary))
+        store.acknowledge(initial["journalId"] as String, boundary)
+        val empty = store.readBatch(256, boundary)
+        assertEquals(initial["journalId"], empty["journalId"])
+        assertTrue((empty["locations"] as List<*>).isEmpty())
+        assertEquals(1, (store.readBatch(256)["locations"] as List<*>).size)
+        assertFailsWith<IllegalArgumentException> { store.readBatch(256, 0) }
+        store.close()
+    }
+
+    @Test fun failedAppendPublishesNeitherJournalRowNorLatestSnapshot() {
+        val store = RecordingStore(context)
+        store.append(1, point())
+        val beforeBatch = store.readBatch(256)
+        val beforeSnapshot = store.getSnapshot()
+        store.writableDatabase.execSQL("""CREATE TRIGGER fail_latest_update
+            BEFORE UPDATE OF latest_sequence ON recording_state
+            BEGIN SELECT RAISE(ABORT, 'injected snapshot failure'); END""")
+        assertFailsWith<android.database.SQLException> { store.append(2, point()) }
+        assertEquals(beforeBatch, store.readBatch(256))
+        assertEquals(beforeSnapshot, store.getSnapshot())
+        store.close()
+    }
+
+    @Test fun versionOneMigrationPreservesIdentityPendingRowsAndRecordingIntent() {
+        val old = SQLiteDatabase.openOrCreateDatabase(
+            context.getDatabasePath("tencent_location_recording.db"), null,
+        )
+        old.execSQL("""CREATE TABLE recording_state (
+            id INTEGER PRIMARY KEY CHECK (id = 1), journal_id TEXT NOT NULL,
+            initialized INTEGER NOT NULL DEFAULT 0, active INTEGER NOT NULL DEFAULT 0,
+            config TEXT, last_error TEXT)""")
+        old.execSQL("""CREATE TABLE locations (
+            sequence INTEGER PRIMARY KEY AUTOINCREMENT,
+            received_timestamp_ms INTEGER NOT NULL, location_json TEXT NOT NULL)""")
+        old.execSQL("""INSERT INTO recording_state
+            (id, journal_id, initialized, active, config) VALUES (1, 'v1-journal', 1, 1, ?)""",
+            arrayOf(config().json.toString()))
+        old.execSQL("INSERT INTO locations VALUES (7, 111, ?)", arrayOf(point().toString()))
+        old.execSQL("INSERT INTO locations VALUES (9, 222, ?)", arrayOf(point().toString()))
+        old.version = 1
+        old.close()
+
+        val migrated = RecordingStore(context)
+        val batch = migrated.readBatch(256)
+        assertEquals("v1-journal", batch["journalId"])
+        @Suppress("UNCHECKED_CAST")
+        val rows = batch["locations"] as List<Map<String, Any?>>
+        assertEquals(listOf(7L, 9L), rows.map { it["sequence"] })
+        assertEquals(rows.last(), migrated.getSnapshot()["latestLocation"])
+        assertEquals(true, migrated.getState()["isRecording"])
+        assertEquals(config().json.toString(), migrated.activeConfig()!!.json.toString())
+        // A helper that observed v1 before waiting for the other process's
+        // upgrade transaction must not attempt the ALTER statements again.
+        migrated.onUpgrade(migrated.writableDatabase, 1, 2)
+        assertEquals(rows.last(), migrated.getSnapshot()["latestLocation"])
+        migrated.acknowledge("v1-journal", 9)
+        assertEquals(rows.last(), migrated.getSnapshot()["latestLocation"])
+        migrated.append(333, point())
+        assertTrue(sequence(migrated.readBatch(1)) > 9)
+        migrated.close()
+    }
+
+    @Test fun readersDoNotNeedTheWriterLockAndObserveOneCommittedSnapshot() {
+        val writer = RecordingStore(context)
+        val reader = RecordingStore(context)
+        writer.append(1, point())
+        val committedBatch = reader.readBatch(256)
+        val committedSnapshot = reader.getSnapshot()
+        val executor = Executors.newSingleThreadExecutor()
+        val db = writer.writableDatabase
+        db.beginTransactionNonExclusive()
+        try {
+            writer.append(2, point()) // This remains uncommitted in the outer transaction.
+            val reading = executor.submit<Pair<Map<String, Any?>, Map<String, Any?>>> {
+                Pair(reader.readBatch(256), reader.getSnapshot())
+            }
+            val observed = reading.get(3, TimeUnit.SECONDS)
+            assertEquals(committedBatch, observed.first)
+            assertEquals(committedSnapshot, observed.second)
+            db.setTransactionSuccessful()
+        } finally {
+            db.endTransaction()
+            executor.shutdown()
+            executor.awaitTermination(3, TimeUnit.SECONDS)
+            reader.close()
+        }
+        assertEquals(2, (writer.readBatch(256)["locations"] as List<*>).size)
+        writer.close()
+    }
+
+    @Test fun missingMarkerIsBenignButOtherOpenErrorsStillFail() {
+        val marker = File(context.filesDir, "tencent_location_recording_failure.txt")
+        val store = RecordingStore(context)
+        // Both clear operations tolerate the marker already having disappeared.
+        store.start(config())
+        store.stop()
+        assertNull(store.getState()["lastError"])
+        assertTrue(marker.mkdir())
+        // The default shadow rejects a directory at open with EIO. On Android
+        // O_RDONLY can open it and reading fails with EISDIR. Neither is absence.
+        val error = assertFailsWith<ErrnoException> { store.getState() }
+        assertEquals(OsConstants.EIO, error.errno)
+        marker.delete()
+        assertNull(store.getState()["lastError"])
+        store.close()
+    }
+
+    @Test fun markerCreatedAfterMissingOpenIsObservedByTheNextQuery() {
+        val store = RecordingStore(context)
+        store.start(config())
+        RecorderMarkerLinuxShadow.createOnMissingOpen = "new failure"
+        // open observed ENOENT, even though the file now exists. A later stat
+        // must not replace that original result and fail this status query.
+        @Suppress("UNCHECKED_CAST")
+        val state = store.getSnapshot()["state"] as Map<String, Any?>
+        assertEquals(true, state["isRecording"])
+        assertNull(state["lastError"])
+        assertEquals("new failure", store.getState()["lastError"])
+        assertEquals(false, store.getState()["isRecording"])
         store.close()
     }
 

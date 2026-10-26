@@ -107,6 +107,82 @@ void main() {
     expect(state.lastError, 'disk full');
   });
 
+  test('snapshot decodes native state and latest location together', () async {
+    messenger.setMockMethodCallHandler(channel, (call) async {
+      expect(call.method, 'getSnapshot');
+      expect(call.arguments, isNull);
+      return {
+        'journalId': 'journal-1',
+        'state': {'initialized': true, 'isRecording': true, 'lastError': null},
+        'latestLocation': {
+          'sequence': 42,
+          'receivedTimestampMs': 1700000001234,
+          'location': {
+            'code': 0,
+            'latitude': 22,
+            'longitude': 114.2,
+            'horizontalAccuracy': 4.5,
+            'altitude': null,
+            'speed': 1,
+            'bearing': 180.5,
+            'time': 1700000000000,
+            'sourceProvider': 'gps',
+            'locationSource': 0,
+          },
+        },
+      };
+    });
+
+    final snapshot = await recorder.getSnapshot();
+    expect(snapshot.journalId, 'journal-1');
+    expect(snapshot.state.initialized, isTrue);
+    expect(snapshot.state.isRecording, isTrue);
+    expect(snapshot.state.lastError, isNull);
+    final point = snapshot.latestLocation!;
+    expect(point.sequence, 42);
+    expect(point.receivedTimestampMs, 1700000001234);
+    expect(point.location.latitude, 22.0);
+    expect(point.location.longitude, 114.2);
+    expect(point.location.horizontalAccuracy, 4.5);
+    expect(point.location.altitude, isNull);
+    expect(point.location.speed, 1.0);
+    expect(point.location.time, 1700000000000);
+  });
+
+  test('snapshot supports native state with no location yet', () async {
+    messenger.setMockMethodCallHandler(channel, (call) async {
+      expect(call.method, 'getSnapshot');
+      return {
+        'journalId': 'journal-2',
+        'state': {
+          'initialized': true,
+          'isRecording': false,
+          'lastError': 'disk full',
+        },
+        'latestLocation': null,
+      };
+    });
+
+    final snapshot = await recorder.getSnapshot();
+    expect(snapshot.journalId, 'journal-2');
+    expect(snapshot.state.initialized, isTrue);
+    expect(snapshot.state.isRecording, isFalse);
+    expect(snapshot.state.lastError, 'disk full');
+    expect(snapshot.latestLocation, isNull);
+  });
+
+  test('bounded batch sends the captured inclusive sequence', () async {
+    messenger.setMockMethodCallHandler(channel, (call) async {
+      expect(call.method, 'readBatch');
+      expect(call.arguments, {'limit': 17, 'throughSequence': 42});
+      return {'journalId': 'journal-1', 'locations': <Object?>[]};
+    });
+
+    final batch = await recorder.readBatch(limit: 17, throughSequence: 42);
+    expect(batch.journalId, 'journal-1');
+    expect(batch.locations, isEmpty);
+  });
+
   test(
     'batch preserves journal, sequence and native receipt timestamp',
     () async {
@@ -173,6 +249,12 @@ void main() {
     });
     for (final limit in [-1, 0, 257]) {
       await expectLater(recorder.readBatch(limit: limit), throwsRangeError);
+    }
+    for (final sequence in [-1, 0]) {
+      await expectLater(
+        recorder.readBatch(throughSequence: sequence),
+        throwsRangeError,
+      );
     }
     await expectLater(
       recorder.acknowledge(journalId: '', sequence: 1),

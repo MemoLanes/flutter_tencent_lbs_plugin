@@ -95,20 +95,55 @@ class AndroidLocationRecorder {
   Future<AndroidRecordingState> getState() async {
     final result = await _channel.invokeMapMethod<String, Object?>('getState');
     if (result == null) throw StateError('Native recording state is missing');
-    return AndroidRecordingState(
-      initialized: result['initialized'] as bool,
-      isRecording: result['isRecording'] as bool,
-      lastError: result['lastError'] as String?,
+    return AndroidRecordingState._fromMap(result);
+  }
+
+  /// Reads native state and the latest persisted point without importing data.
+  ///
+  /// The latest point survives journal acknowledgements. Use it for live UI
+  /// display, with the sample's timestamp to determine freshness; it must not
+  /// be fed into the recording importer a second time.
+  Future<AndroidRecordingSnapshot> getSnapshot() async {
+    final result = await _channel.invokeMapMethod<String, Object?>(
+      'getSnapshot',
+    );
+    if (result == null) {
+      throw StateError('Native recording snapshot is missing');
+    }
+    final latest = result['latestLocation'] as Map?;
+    return AndroidRecordingSnapshot(
+      journalId: result['journalId'] as String,
+      state: AndroidRecordingState._fromMap(
+        (result['state'] as Map).cast<String, Object?>(),
+      ),
+      latestLocation: latest == null
+          ? null
+          : RecordedLocation._fromMap(latest.cast<String, Object?>()),
     );
   }
 
   /// Reads the oldest unacknowledged points in sequence order.
-  Future<RecordedLocationBatch> readBatch({int limit = 256}) async {
+  ///
+  /// [throughSequence] fixes an inclusive upper boundary, so consuming a
+  /// snapshot does not wait for points collected after that snapshot. Check
+  /// that the batch and snapshot have the same journal ID before importing.
+  Future<RecordedLocationBatch> readBatch({
+    int limit = 256,
+    int? throughSequence,
+  }) async {
     RangeError.checkValueInInterval(limit, 1, 256, 'limit');
-    final result = await _channel.invokeMapMethod<String, Object?>(
-      'readBatch',
-      <String, Object?>{'limit': limit},
-    );
+    if (throughSequence != null && throughSequence <= 0) {
+      throw RangeError.value(
+        throughSequence,
+        'throughSequence',
+        'Must be positive',
+      );
+    }
+    final result = await _channel
+        .invokeMapMethod<String, Object?>('readBatch', <String, Object?>{
+          'limit': limit,
+          if (throughSequence != null) 'throughSequence': throughSequence,
+        });
     if (result == null) throw StateError('Native recording batch is missing');
     final rows = result['locations'] as List<Object?>;
     return RecordedLocationBatch(
@@ -150,10 +185,34 @@ class AndroidRecordingState {
     this.lastError,
   });
 
+  factory AndroidRecordingState._fromMap(Map<String, Object?> values) {
+    return AndroidRecordingState(
+      initialized: values['initialized'] as bool,
+      isRecording: values['isRecording'] as bool,
+      lastError: values['lastError'] as String?,
+    );
+  }
+
   /// Whether native recording state has ever been explicitly initialized.
   final bool initialized;
   final bool isRecording;
   final String? lastError;
+}
+
+/// One native read of the recording state and latest persisted location.
+class AndroidRecordingSnapshot {
+  const AndroidRecordingSnapshot({
+    required this.journalId,
+    required this.state,
+    required this.latestLocation,
+  });
+
+  final String journalId;
+  final AndroidRecordingState state;
+
+  /// Null until a native point is available. Acknowledging the journal does
+  /// not clear this point; callers must apply their own UI freshness rule.
+  final RecordedLocation? latestLocation;
 }
 
 class RecordedLocationBatch {

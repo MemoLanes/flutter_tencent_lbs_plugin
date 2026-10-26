@@ -320,6 +320,14 @@ await recorder.stopRecording();
 调用方应以 `(journalId, sequence)` 实现幂等导入：业务提交成功但原生 ACK 前崩溃，会再次读到相同点。
 服务不会替调用方决定轨迹归属，也不会自动删除未确认位置或限制未确认队列大小。
 
+`getSnapshot()` 在一次原生读取中返回 `journalId`、录制 `state` 和 `latestLocation`。
+最新位置与队列 ACK 独立：已确认的点仍可作为最新位置供 UI 展示，调用方应按其采样时间判断新鲜度，
+不要将该快照再送入轨迹导入。状态和当前位置的轮询不应等待历史队列消费或业务数据库写入成功。
+需要消费一个有限快照时，先保存 `snapshot.latestLocation?.sequence`，再给每次 `readBatch`
+传相同的 `throughSequence`，并核对批次的 `journalId` 与快照一致；之后采集的新点留给下一轮消费。
+没有最新位置时无需消费队列。schema v1 升级会从尚未确认的最后一条队列记录恢复最新位置；
+若旧队列已清空，则等下一次原生定位后才有最新位置。
+
 `startRecording` 在 SDK 成功注册 listener 后完成，SDK 启动返回码、前台服务/权限异常会使 Future 失败。
 相同配置的重复启动保持正在运行的 listener；配置变更会重新注册。`stopRecording` 先注销 listener、
 拒绝迟到回调，再等所有先前已接受位置落盘及停止状态提交后回复。SDK 注销或写盘错误不会返回成功。

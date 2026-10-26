@@ -28,7 +28,7 @@ import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34], manifest = Config.NONE)
+@Config(sdk = [34], manifest = Config.NONE, shadows = [RecorderMarkerLinuxShadow::class])
 class LocationRecordingServiceTest {
     private val context get() = RuntimeEnvironment.getApplication()
     @Before fun before() = clean()

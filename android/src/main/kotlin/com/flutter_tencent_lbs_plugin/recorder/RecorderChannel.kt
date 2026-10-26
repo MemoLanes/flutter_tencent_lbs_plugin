@@ -33,10 +33,15 @@ internal class RecorderChannel(private val context: Context, messenger: BinaryMe
                 }
                 "stopRecording" -> command(LocationRecordingService.ACTION_STOP, null, result)
                 "getState" -> query(result) { store.getState() }
+                "getSnapshot" -> query(result) { store.getSnapshot() }
                 "readBatch" -> {
                     val limit = call.argument<Number>("limit")?.toInt() ?: 256
                     require(limit in 1..256) { "limit must be between 1 and 256" }
-                    query(result) { store.readBatch(limit) }
+                    val throughSequence = call.argument<Number>("throughSequence")?.toLong()
+                    require(throughSequence == null || throughSequence > 0) {
+                        "throughSequence must be positive"
+                    }
+                    query(result) { store.readBatch(limit, throughSequence) }
                 }
                 "acknowledge" -> {
                     val journalId = requireNotNull(call.argument<String>("journalId")) { "journalId is required" }
