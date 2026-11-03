@@ -7,9 +7,9 @@ import CoreLocation
 /// 坐标系：Flutter 统一 0=GCJ02, 1=WGS84 → iOS TencentLBSLocationCoordinateTypeGCJ02=0, WGS84=1
 final class TencentLBSHostApiImpl: NSObject, TencentLBSHostApi, TencentLBSLocationManagerDelegate {
     private var locationManager: TencentLBSLocationManager?
+    private let makeLocationManager: () -> TencentLBSLocationManager
     private var flutterApi: TencentLBSFlutterApi?
     private var isListenLocationUpdates = false
-    private var callbackThrottle = LocationCallbackThrottle()
     private var disposed = false
     private struct PendingSingleRequest {
         let completion: (Result<LocationData?, Error>) -> Void
@@ -17,7 +17,8 @@ final class TencentLBSHostApiImpl: NSObject, TencentLBSHostApi, TencentLBSLocati
     }
     private var singleRequests: [UUID: PendingSingleRequest] = [:]
 
-    override init() {
+    init(makeLocationManager: @escaping () -> TencentLBSLocationManager = { TencentLBSLocationManager() }) {
+        self.makeLocationManager = makeLocationManager
         super.init()
     }
 
@@ -29,7 +30,7 @@ final class TencentLBSHostApiImpl: NSObject, TencentLBSHostApi, TencentLBSLocati
             throw PigeonError(code: "in-progress", message: "定位进行中，不能重新初始化", details: nil)
         }
         let accuracy = try desiredAccuracy(locMode: options.locMode, explicitAccuracy: nil)
-        let manager = TencentLBSLocationManager()
+        let manager = makeLocationManager()
         manager.delegate = self
         manager.apiKey = options.apiKey
         // enableAntiMockLocation：开启反作弊检查。mockEnable=true 表示允许 Mock，故应关闭反作弊。
@@ -89,12 +90,10 @@ final class TencentLBSHostApiImpl: NSObject, TencentLBSHostApi, TencentLBSLocati
 
         if let accuracy { manager.desiredAccuracy = accuracy }
         if let distance = request.iosDistanceFilter { manager.distanceFilter = distance }
-        callbackThrottle.updateInterval(milliseconds: request.intervalMs)
-        callbackThrottle.reset()
         isListenLocationUpdates = true
-        // The SDK's nonzero interval uses a timer configured at start. Receive
-        // fresh callbacks instead, so interval changes never require a restart.
-        manager.locationCallbackInterval = 0
+        // Match Tencent's iOS continuous-location examples: configure the SDK,
+        // rather than dropping callbacks after the SDK has already delivered them.
+        manager.locationCallbackInterval = UInt64(request.intervalMs)
         manager.allowsBackgroundLocationUpdates = request.backgroundLocation == true
         manager.pausesLocationUpdatesAutomatically = false
         if let rl = request.requestLevel {
@@ -119,11 +118,11 @@ final class TencentLBSHostApiImpl: NSObject, TencentLBSHostApi, TencentLBSLocati
 
         if let accuracy { manager.desiredAccuracy = accuracy }
         if let distance = update.iosDistanceFilter { manager.distanceFilter = distance }
-        if let interval = update.intervalMs { callbackThrottle.updateInterval(milliseconds: interval) }
+        if let interval = update.intervalMs { manager.locationCallbackInterval = UInt64(interval) }
         if let rl = update.requestLevel {
             manager.requestLevel = requestLevel(rl)
         }
-        // Keep the existing location session and its background authorization.
+        // Update the SDK in place, preserving its listener and background session.
     }
 
     private func requestLevel(_ value: Int64) -> TencentLBSRequestLevel {
@@ -164,7 +163,6 @@ final class TencentLBSHostApiImpl: NSObject, TencentLBSHostApi, TencentLBSLocati
     func stopLocationUpdates() {
         isListenLocationUpdates = false
         locationManager?.stopUpdatingLocation()
-        callbackThrottle.reset()
     }
 
     func dispose() {
@@ -187,8 +185,7 @@ final class TencentLBSHostApiImpl: NSObject, TencentLBSHostApi, TencentLBSLocati
 
     // MARK: - TencentLBSLocationManagerDelegate
     func tencentLBSLocationManager(_ manager: TencentLBSLocationManager, didUpdate location: TencentLBSLocation) {
-        guard isListenLocationUpdates, manager === locationManager,
-              callbackThrottle.shouldDeliver(at: ProcessInfo.processInfo.systemUptime) else { return }
+        guard isListenLocationUpdates, manager === locationManager else { return }
         flutterApi?.onLocation(location: Self.toLocationData(location)) { _ in }
     }
 

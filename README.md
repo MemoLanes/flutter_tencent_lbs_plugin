@@ -162,17 +162,18 @@ Future<void> updateLocationRequest({
 }) async
 ```
 
-更新期间保持原有定位会话和后台服务：Android 仅改间隔时调用 `changeCallbackInterval`，其余参数使用同一 listener 再次调用 `requestLocationUpdates`，成功后用 `removeLocationListener` 移除多出的一份注册，不先 `removeUpdates`；iOS 原地更新 `desiredAccuracy`、`distanceFilter` 和 `requestLevel`，不调用 `stopUpdatingLocation`。
+更新期间保持原有定位会话和后台服务：Android 仅改间隔时调用 `changeCallbackInterval`，其余参数使用同一 listener 再次调用 `requestLocationUpdates`，成功后用 `removeLocationListener` 移除多出的一份注册，不先 `removeUpdates`；iOS 原地更新 `desiredAccuracy`、`distanceFilter`、`requestLevel` 和 `locationCallbackInterval`，不停止或重新启动监听。
 
-iOS 启动时关闭 SDK 的周期回调计时器（`locationCallbackInterval = 0`），由插件按 `interval` 对新定位结果节流。运行中改变间隔立即作用于后续新结果，不重启定位，也不定时重复发送旧位置；减少 GPS 耗电仍需降低精度要求。单次定位不参与此节流。
+iOS 启动时直接将 `interval` 设置到 SDK 的 `locationCallbackInterval`，运行中修改 `intervalMs` 也直接更新同一 SDK 属性，不再由插件丢弃多余回调。参考[腾讯 iOS 低功耗示例](https://mapapi.qq.com/web/lbsComponents/v/index-v2-standalone.html)，持续省电定位可使用 `kCLLocationAccuracyKilometer`、60000 毫秒回调和 `pausesLocationUpdatesAutomatically = NO`；后台能力沿用启动时配置。SDK 周期回调可能重复已有位置，调用方仍需校验时间戳和精度；属性成功设置不代表硬件定位周期或耗电得到保证，实际回调时序及功耗需真机验证。
 
 ```dart
 // 已经开始连续定位后，切到低功耗档。
 await plugin.updateLocationRequest(
   locMode: TencentLBSLocMode.LOW_POWER_MODE,
-  intervalMs: 30000,
+  intervalMs: 60000,
   allowGps: false,        // Android 参数
-  iosDistanceFilter: 50,
+  iosDesiredAccuracy: TencentLBSIosAccuracy.kilometer,
+  iosDistanceFilter: -1,
 );
 
 // 重新移动时恢复高精度。
@@ -180,6 +181,7 @@ await plugin.updateLocationRequest(
   locMode: TencentLBSLocMode.HIGH_ACCURACY_MODE,
   intervalMs: 1000,
   allowGps: true,
+  iosDesiredAccuracy: TencentLBSIosAccuracy.best,
   iosDistanceFilter: -1,
 );
 ```
@@ -293,7 +295,7 @@ void stop();
 ## 省电建议（SDK 文档）
 
 - **定位模式**：对精度要求不高时使用 `TencentLBSLocMode.LOW_POWER_MODE`（11）。Android 使用仅网络定位；iOS 请求百米精度，由系统选择定位硬件。
-- **间隔**：Android 可运行中调用原生 `changeCallbackInterval` 调整 GPS 回调频率；iOS 的插件节流减少回调处理，定位硬件节能主要通过精度和距离过滤实现。
+- **间隔**：Android 可运行中调用原生 `changeCallbackInterval` 调整 GPS 回调频率；iOS 将间隔直接下发给 SDK 的 `locationCallbackInterval`，配合精度要求表达省电意图，不保证 GNSS 硬件按该周期采样。
 - **allowGps**：Android 可传 `false` 减少 GPS 使用。
 - **gpsFirst / gpsFirstTimeOutMs**：信号差时缩短超时或关闭“GPS 优先”，避免长时间搜星耗电。
 
@@ -316,8 +318,8 @@ void stop();
   `dart run pigeon --input pigeons/location_api.dart`，然后执行 `dart format lib/src/pigeon/location_pigeon.dart`。
   会生成：`lib/src/pigeon/location_pigeon.dart`、Android `pigeon/LocationPigeon.kt`、iOS `ios/flutter_tencent_lbs_plugin/Sources/flutter_tencent_lbs_plugin/pigeon/LocationPigeon.swift`。**序列化格式为 List（按字段顺序），不可改为 Map；修改通信协议时应修改 pigeons 定义并重新生成，勿手改生成文件。**
 - **原生层（手写）**：Android 实现位于 `android/.../pigeon/TencentLBSHostApiImpl.kt`；iOS 为 `ios/flutter_tencent_lbs_plugin/Sources/flutter_tencent_lbs_plugin/TencentLBSHostApiImpl.swift`、`FlutterTencentLbsPlugin.swift`（支持 CocoaPods + SPM 双模式），仅使用 Swift + Pigeon，无 ObjC Pigeon、无 Bridging Header。
-- **请求校验与节流**：`lib/src/location_request_validation.dart` 由公开 API 和 Pigeon 平台实现共用；iOS `LocationCallbackThrottle.swift` 独立维护新回调的节流，不负责定位生命周期。
-- **测试**：`test/runtime_location_request_test.dart` 验证单次请求隔离、结果处理和日志异常；Android 测试按 SDK 的重复注册语义检查切档、停止、超时清理和失败恢复，通过公开 API 建立会话；Swift 测试验证节流边界和切档后的首次回调。
+- **请求校验**：`lib/src/location_request_validation.dart` 由公开 API 和 Pigeon 平台实现共用；iOS 参数直接作用于原生 SDK。
+- **测试**：`test/runtime_location_request_test.dart` 验证单次请求隔离、结果处理和日志异常；Android 测试按 SDK 的重复注册语义检查切档、停止、超时清理和失败恢复。iOS 测试编译真实 Pigeon Host 和腾讯 SDK 类型，使用不发起定位的 SDK 子类验证参数、无重启切档、部分更新及非法参数隔离。在已启动的 iOS 模拟器上运行 `bash test/native/ios/run.sh /绝对路径/Flutter.xcframework [模拟器UDID]`。该测试不测量真实回调间隔或功耗。
 - **已废弃**：无 MethodChannel 实现；iOS 无 ObjC Pigeon 输出；插件不再生成或依赖 `LocationCode`、Bridging Header。
 
 ---
