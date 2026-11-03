@@ -1,3 +1,26 @@
+## Unreleased
+
+- Android 启动和组合更新成功后显式调用 `changeCallbackInterval`，避免同时修改缓存等参数时遗漏 SDK 内部 GPS 间隔；iOS 继续直接设置其独立的 `locationCallbackInterval` 属性。
+- 修复 Android 切档后重复注册 listener 导致停止不彻底的问题；单次请求由原生层负责 30 秒超时并在回复前清理；iOS 单次定位错误不再进入未运行的连续定位监听器。
+- 腾讯定位 SDK 更新至 Android 7.6.1.9、iOS 4.3.2；Pigeon 更新至 29.0.10，并重新生成三端通信代码。
+- 单次定位通过独立请求返回结果，避免与连续定位事件混淆；请求异常和超时后允许重试，迟到结果不会影响下一次请求。
+- Android 后台通知配置无效时，启动请求直接返回异常。
+- 定位进行中拒绝重新初始化；引擎解绑时停止定位、取消待完成单次请求并释放回调。
+- 清除重复的 Android 通知数据类和闲置 Gradle 脚本，保留通知行为；示例通过运行参数接收 Key，并正确处理异步失败和退出清理。
+- 增加可选的 Dart 字符串日志回调，可接入 App 日志或默认使用 Flutter debugPrint；仅记录定位请求、成功和异常，不增加原生日志通道。
+- Android 运行中切换请求时保留 listener 和前台服务，不再先移除定位监听；检查 SDK 注册返回码并保留上一份成功请求。
+- iOS 支持高精度/低功耗模式及显式精度、距离过滤参数，运行中更新不停止定位。
+- iOS 直接设置 SDK 的 `locationCallbackInterval`，移除插件回调节流；运行中修改间隔不停止或重启监听。低功耗示例采用公里级精度与 60 秒 SDK 回调，恢复高精度时改回 `best` 与 1 秒回调。
+
+## 0.2.0
+
+- Android SDK 升级至 7.6.1.8
+- iOS SDK 升级至 4.3.1（新增地理围栏功能）
+- iOS 切换到 xcframework，支持 Apple Silicon 模拟器（与 SPM 同路径，仅保留一份）
+- iOS 添加 Swift Package Manager 支持（兼容 CocoaPods + SPM 双模式）
+- Android 移除 Kotlin Gradle Plugin，改用 Flutter 内置 Kotlin
+- Java/Kotlin target 升级至 JDK 17
+
 ## 0.1.0
 
 🐞 fix: 修复安装插件后 App 无法在 iOS Simulator 启动的 bug

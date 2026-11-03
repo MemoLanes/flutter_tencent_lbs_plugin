@@ -1,13 +1,17 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_tencent_lbs_plugin/flutter_tencent_lbs_plugin_platform_interface.dart';
 import 'package:flutter_tencent_lbs_plugin/model/android_notification_options.dart';
 import 'package:flutter_tencent_lbs_plugin/model/location.dart';
 import 'package:flutter_tencent_lbs_plugin/model/status.dart';
-import 'package:flutter_tencent_lbs_plugin/src/pigeon/location_pigeon.dart' as pigeon;
+import 'package:flutter_tencent_lbs_plugin/src/pigeon/location_pigeon.dart'
+    as pigeon;
+import 'location_request_validation.dart';
 
 /// 基于 Pigeon 的平台实现，参数与腾讯定位 SDK 文档对齐。
-class FlutterTencentLBSPluginPigeonPlatform extends FlutterTencentLBSPluginPlatform {
+class FlutterTencentLBSPluginPigeonPlatform
+    extends FlutterTencentLBSPluginPlatform {
   FlutterTencentLBSPluginPigeonPlatform() : super() {
     _hostApi = pigeon.TencentLBSHostApi();
     _flutterApi = _PigeonFlutterApi(this);
@@ -16,8 +20,42 @@ class FlutterTencentLBSPluginPigeonPlatform extends FlutterTencentLBSPluginPlatf
 
   late final pigeon.TencentLBSHostApi _hostApi;
   late final _PigeonFlutterApi _flutterApi;
-  Completer<Location?>? _onceCompleter;
+  bool _onceInFlight = false;
   bool _initialized = false;
+  void Function(String message)? _logSink;
+
+  @override
+  Future<void> setDebugLogging({
+    required bool enabled,
+    void Function(String message)? onLog,
+  }) async {
+    _logSink = enabled ? (onLog ?? debugPrint) : null;
+  }
+
+  void _emitLog(String Function() message) {
+    final sink = _logSink;
+    if (sink == null) return;
+    try {
+      sink('[TencentLBS] ${message()}');
+    } catch (_) {
+      // Diagnostic sinks must never interrupt location or error delivery.
+    }
+  }
+
+  Future<void> _traceRequest(
+    String operation,
+    String Function() parameters,
+    Future<void> Function() send,
+  ) async {
+    _emitLog(() => '$operation requested: ${parameters()}');
+    try {
+      await send();
+      _emitLog(() => '$operation succeeded');
+    } catch (error) {
+      _emitLog(() => '$operation failed: $error');
+      rethrow;
+    }
+  }
 
   @override
   Future<bool> init({
@@ -57,19 +95,18 @@ class FlutterTencentLBSPluginPigeonPlatform extends FlutterTencentLBSPluginPlatf
     if (!_initialized) {
       throw StateError('请先调用 init() 完成初始化');
     }
-    if (_onceCompleter != null && !_onceCompleter!.isCompleted) {
+    if (_onceInFlight) {
       throw StateError('上一次 getLocationOnce() 仍在进行中，请等待结果后重试');
     }
-    final completer = Completer<Location?>();
-    _onceCompleter = completer;
-    await _hostApi.requestLocationOnce();
-    return completer.future.timeout(
-      const Duration(seconds: 30),
-      onTimeout: () {
-        _onceCompleter = null;
-        return null;
-      },
-    );
+    _onceInFlight = true;
+    try {
+      // Native code owns the deadline and releases SDK resources before replying,
+      // so the next request cannot race a timed-out request still in the SDK.
+      final data = await _hostApi.requestLocationOnce();
+      return data == null || data.code != 0 ? null : _toLocation(data);
+    } finally {
+      _onceInFlight = false;
+    }
   }
 
   @override
@@ -83,11 +120,18 @@ class FlutterTencentLBSPluginPigeonPlatform extends FlutterTencentLBSPluginPlatf
     bool? allowCache,
     bool? gpsFirst,
     int? gpsFirstTimeOutMs,
+    double? iosDesiredAccuracy,
+    double? iosDistanceFilter,
   }) async {
     if (!_initialized) {
       throw StateError('请先调用 init() 完成初始化');
     }
-    _validateIntervalMs(interval);
+    validateLocationRequest(
+      intervalMs: interval,
+      locMode: locMode,
+      iosDesiredAccuracy: iosDesiredAccuracy,
+      iosDistanceFilter: iosDistanceFilter,
+    );
     final request = pigeon.ContinuousLocationRequest(
       intervalMs: interval,
       requestLevel: requestLevel,
@@ -97,6 +141,8 @@ class FlutterTencentLBSPluginPigeonPlatform extends FlutterTencentLBSPluginPlatf
       gpsFirst: gpsFirst,
       gpsFirstTimeOutMs: gpsFirstTimeOutMs,
       backgroundLocation: backgroundLocation,
+      iosDesiredAccuracy: iosDesiredAccuracy,
+      iosDistanceFilter: iosDistanceFilter,
     );
     pigeon.AndroidNotificationOptions? pigeonNotif;
     if (androidNotificationOptions != null) {
@@ -112,7 +158,14 @@ class FlutterTencentLBSPluginPigeonPlatform extends FlutterTencentLBSPluginPlatf
         showWhen: androidNotificationOptions.showWhen,
       );
     }
-    await _hostApi.startLocationUpdates(request, pigeonNotif);
+    await _traceRequest(
+      'start',
+      () =>
+          'intervalMs=$interval, mode=$locMode, allowGps=$allowGps, '
+          'allowCache=$allowCache, background=$backgroundLocation, '
+          'iosAccuracy=$iosDesiredAccuracy, iosDistanceFilter=$iosDistanceFilter',
+      () => _hostApi.startLocationUpdates(request, pigeonNotif),
+    );
   }
 
   @override
@@ -124,13 +177,18 @@ class FlutterTencentLBSPluginPigeonPlatform extends FlutterTencentLBSPluginPlatf
     bool? allowGps,
     bool? allowCache,
     bool? gpsFirst,
+    double? iosDesiredAccuracy,
+    double? iosDistanceFilter,
   }) async {
     if (!_initialized) {
       throw StateError('请先调用 init() 完成初始化');
     }
-    if (intervalMs != null) {
-      _validateIntervalMs(intervalMs);
-    }
+    validateLocationRequest(
+      intervalMs: intervalMs,
+      locMode: locMode,
+      iosDesiredAccuracy: iosDesiredAccuracy,
+      iosDistanceFilter: iosDistanceFilter,
+    );
     final update = pigeon.LocationRequestUpdate(
       intervalMs: intervalMs,
       requestLevel: requestLevel,
@@ -139,26 +197,26 @@ class FlutterTencentLBSPluginPigeonPlatform extends FlutterTencentLBSPluginPlatf
       allowGps: allowGps,
       allowCache: allowCache,
       gpsFirst: gpsFirst,
+      iosDesiredAccuracy: iosDesiredAccuracy,
+      iosDistanceFilter: iosDistanceFilter,
     );
-    await _hostApi.updateLocationRequest(update);
+    await _traceRequest(
+      'update',
+      () =>
+          'intervalMs=$intervalMs, mode=$locMode, allowGps=$allowGps, '
+          'allowCache=$allowCache, iosAccuracy=$iosDesiredAccuracy, '
+          'iosDistanceFilter=$iosDistanceFilter',
+      () => _hostApi.updateLocationRequest(update),
+    );
   }
 
   @override
   void stop() {
-    unawaited(_hostApi.stopLocationUpdates());
+    unawaited(_traceRequest('stop', () => '', _hostApi.stopLocationUpdates));
   }
 
   void _onLocation(pigeon.LocationData data) {
     final loc = _toLocation(data);
-    if (_onceCompleter != null && !_onceCompleter!.isCompleted) {
-      if ((data.code ?? 1) == 0) {
-        _onceCompleter!.complete(loc);
-      } else {
-        _onceCompleter!.complete(null);
-      }
-      _onceCompleter = null;
-      return;
-    }
     final listeners = state.listener.toList(growable: false);
     for (final listener in listeners) {
       listener(loc);
@@ -173,11 +231,6 @@ class FlutterTencentLBSPluginPigeonPlatform extends FlutterTencentLBSPluginPlatf
 
   void _onError(int code, String message) {
     final loc = Location()..code = code;
-    if (_onceCompleter != null && !_onceCompleter!.isCompleted) {
-      _onceCompleter!.complete(null);
-      _onceCompleter = null;
-      return;
-    }
     final failListeners = state.failListener.toList(growable: false);
     for (final listener in failListeners) {
       listener(loc);
@@ -198,7 +251,7 @@ class FlutterTencentLBSPluginPigeonPlatform extends FlutterTencentLBSPluginPlatf
 
   static Location _toLocation(pigeon.LocationData data) {
     final loc = Location();
-    loc.code = data.code ?? 0;
+    loc.code = data.code ?? 1;
     loc.latitude = data.latitude;
     loc.longitude = data.longitude;
     loc.altitude = data.altitude;
@@ -211,12 +264,6 @@ class FlutterTencentLBSPluginPigeonPlatform extends FlutterTencentLBSPluginPlatf
     loc.locationSource = data.locationSource;
     return loc;
   }
-
-  static void _validateIntervalMs(int intervalMs) {
-    if (intervalMs < 1000) {
-      throw RangeError.value(intervalMs, 'intervalMs', '必须大于等于 1000 毫秒');
-    }
-  }
 }
 
 class _PigeonFlutterApi extends pigeon.TencentLBSFlutterApi {
@@ -225,17 +272,17 @@ class _PigeonFlutterApi extends pigeon.TencentLBSFlutterApi {
   final FlutterTencentLBSPluginPigeonPlatform _platform;
 
   @override
-  void onLocation(pigeon.LocationData location) {
+  Future<void> onLocation(pigeon.LocationData location) async {
     _platform._onLocation(location);
   }
 
   @override
-  void onError(int code, String message) {
+  Future<void> onError(int code, String message) async {
     _platform._onError(code, message);
   }
 
   @override
-  void onStatus(pigeon.LocationStatusData? status) {
+  Future<void> onStatus(pigeon.LocationStatusData? status) async {
     _platform._onStatus(status);
   }
 }
