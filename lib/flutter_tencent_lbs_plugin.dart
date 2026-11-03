@@ -141,6 +141,7 @@ class FlutterTencentLBSPlugin {
   /// 仅需传要变更的字段；[intervalMs] 若传入则必须 `>= 1000`，否则抛 [RangeError]。
   /// 双端切换不主动停止定位或后台服务。iOS 的模式对应精度要求；
   /// [iosDesiredAccuracy] 可覆盖模式的默认精度，[iosDistanceFilter] 单位米。
+  /// Android 调用 changeCallbackInterval 更新 SDK 内部 GPS 回调频率；
   /// iOS 直接更新 SDK 的 locationCallbackInterval，不重启定位监听。
   /// SDK 周期回调可能重复位置；调用方仍需检查位置时间戳和精度。
   Future<void> updateLocationRequest({

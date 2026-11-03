@@ -162,7 +162,7 @@ Future<void> updateLocationRequest({
 }) async
 ```
 
-更新期间保持原有定位会话和后台服务：Android 仅改间隔时调用 `changeCallbackInterval`，其余参数使用同一 listener 再次调用 `requestLocationUpdates`，成功后用 `removeLocationListener` 移除多出的一份注册，不先 `removeUpdates`；iOS 原地更新 `desiredAccuracy`、`distanceFilter`、`requestLevel` 和 `locationCallbackInterval`，不停止或重新启动监听。
+更新期间保持原有定位会话和后台服务：Android 仅改间隔时调用 `changeCallbackInterval`；涉及其他参数时使用同一 listener 再次调用 `requestLocationUpdates`，成功后用 `removeLocationListener` 移除多出的一份注册，再调用 `changeCallbackInterval` 同步 SDK 内部 GPS 间隔，不先 `removeUpdates`。首次启动成功后也调用 `changeCallbackInterval`，因为该接口仅在连续定位开启后生效。iOS 使用不同接口：原地更新 `desiredAccuracy`、`distanceFilter`、`requestLevel` 和 `locationCallbackInterval`，不停止或重新启动监听。
 
 iOS 启动时直接将 `interval` 设置到 SDK 的 `locationCallbackInterval`，运行中修改 `intervalMs` 也直接更新同一 SDK 属性，不再由插件丢弃多余回调。参考[腾讯 iOS 低功耗示例](https://mapapi.qq.com/web/lbsComponents/v/index-v2-standalone.html)，持续省电定位可使用 `kCLLocationAccuracyKilometer`、60000 毫秒回调和 `pausesLocationUpdatesAutomatically = NO`；后台能力沿用启动时配置。SDK 周期回调可能重复已有位置，调用方仍需校验时间戳和精度；属性成功设置不代表硬件定位周期或耗电得到保证，实际回调时序及功耗需真机验证。
 

@@ -141,6 +141,9 @@ class TencentLBSHostApiImpl(
             if (request.backgroundLocation == true) manager.disableForegroundLocation(true)
             throw FlutterError("location-request-failed", "开启连续定位失败", errorCode)
         }
+        // setInterval controls result delivery; this SDK API also updates its
+        // internal GPS callback interval and is effective only after starting.
+        manager.changeCallbackInterval(req.interval)
         tencentLocationRequest = req
         isListeningLocationUpdates = true
     }
@@ -202,6 +205,9 @@ class TencentLBSHostApiImpl(
             throw FlutterError("location-request-failed", "更新定位请求失败，保留原请求", errorCode)
         }
         manager.removeLocationListener(this)
+        // Combined updates (for example interval + allowCache) must update the
+        // internal GPS interval too, not just nextRequest.interval.
+        manager.changeCallbackInterval(nextRequest.interval)
         tencentLocationRequest = nextRequest
     }
 

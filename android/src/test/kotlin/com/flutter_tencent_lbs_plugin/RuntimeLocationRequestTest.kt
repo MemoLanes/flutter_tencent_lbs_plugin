@@ -45,6 +45,7 @@ class RuntimeLocationRequestTest {
     private var nextRegistrationError = 0
     private var foregroundEnabled = false
     private var engineStops = 0
+    private var gpsCallbackInterval = 1000L
 
     @After
     fun tearDown() {
@@ -98,6 +99,10 @@ class RuntimeLocationRequestTest {
             foregroundEnabled = false
             null
         }.`when`(manager).disableForegroundLocation(true)
+        Mockito.doAnswer { call ->
+            gpsCallbackInterval = call.getArgument(0)
+            null
+        }.`when`(manager).changeCallbackInterval(Mockito.anyLong())
     }
 
     private fun start(background: Boolean = false) {
@@ -141,11 +146,54 @@ class RuntimeLocationRequestTest {
     }
 
     @Test
+    fun startingAppliesTheInternalGpsIntervalAfterRegistration() {
+        host.startLocationUpdates(
+            ContinuousLocationRequest(intervalMs = 15000),
+            null,
+        )
+        assertEquals(15000L, activeRequest.interval)
+        assertEquals(15000L, gpsCallbackInterval)
+        val order = Mockito.inOrder(manager)
+        order.verify(manager).requestLocationUpdates(
+            Mockito.any(TencentLocationRequest::class.java),
+            Mockito.eq(host), Mockito.eq(Looper.getMainLooper()),
+        )
+        order.verify(manager).changeCallbackInterval(15000)
+    }
+
+    @Test
+    fun cacheAndIntervalUpdatesAlsoChangeTheInternalGpsInterval() {
+        start(background = true)
+        Mockito.clearInvocations(manager)
+        host.updateLocationRequest(LocationRequestUpdate(intervalMs = 30000, allowCache = true))
+        assertEquals(30000L, activeRequest.interval)
+        assertEquals(30000L, gpsCallbackInterval)
+        assertTrue(activeRequest.isAllowCache)
+        assertTrue(activeRequest.isAllowGPS)
+        assertEquals(listOf<TencentLocationListener>(host), continuousListeners)
+        val order = Mockito.inOrder(manager)
+        order.verify(manager).requestLocationUpdates(
+            Mockito.any(TencentLocationRequest::class.java),
+            Mockito.eq(host), Mockito.eq(Looper.getMainLooper()),
+        )
+        order.verify(manager).removeLocationListener(host)
+        order.verify(manager).changeCallbackInterval(30000)
+
+        host.updateLocationRequest(LocationRequestUpdate(intervalMs = 1000, allowCache = false))
+        assertEquals(1000L, gpsCallbackInterval)
+        assertFalse(activeRequest.isAllowCache)
+        assertTrue(foregroundEnabled)
+        assertEquals(0, engineStops)
+        assertEquals(listOf<TencentLocationListener>(host), continuousListeners)
+    }
+
+    @Test
     fun intervalOnlyUpdatesKeepOneRegistrationAndTheForegroundService() {
         start(background = true)
         host.updateLocationRequest(LocationRequestUpdate(intervalMs = 15000))
         Mockito.verify(manager).changeCallbackInterval(15000)
         assertEquals(15000L, activeRequest.interval)
+        assertEquals(15000L, gpsCallbackInterval)
         assertEquals(1, continuousListeners.size)
         assertTrue(foregroundEnabled)
         host.stopLocationUpdates()
@@ -156,11 +204,14 @@ class RuntimeLocationRequestTest {
     @Test
     fun failedUpdatePreservesTheActiveRequestAndCanBeRetried() {
         start(background = true)
+        Mockito.clearInvocations(manager)
         nextRegistrationError = 1
         val failure = assertFailsWith<FlutterError> {
             host.updateLocationRequest(LocationRequestUpdate(intervalMs = 30000, locMode = 11, allowGps = false))
         }
         assertEquals("location-request-failed", failure.code)
+        assertEquals(1000L, gpsCallbackInterval)
+        Mockito.verify(manager, Mockito.never()).changeCallbackInterval(Mockito.anyLong())
         assertEquals(listOf<TencentLocationListener>(host), continuousListeners)
         assertTrue(foregroundEnabled)
         deliverContinuousLocation()

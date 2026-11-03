@@ -327,7 +327,7 @@ class ContinuousLocationRequest {
   }
 }
 
-/// 连续定位过程中可更新的参数，仅传需要修改的字段。Android 使用 changeCallbackInterval 或再次 requestLocationUpdates，不先 removeUpdates；iOS 原地更新 SDK 的精度、距离、信息级别和 locationCallbackInterval，不重启监听。
+/// 连续定位过程中可更新的参数，仅传需要修改的字段。Android 使用 changeCallbackInterval 更新内部 GPS 回调频率，涉及其他请求参数时先更新原 listener，不先 removeUpdates；iOS 原地更新 SDK 的精度、距离、信息级别和 locationCallbackInterval，不重启监听。
 class LocationRequestUpdate {
   LocationRequestUpdate({
     this.intervalMs,
